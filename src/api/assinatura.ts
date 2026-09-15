@@ -28,9 +28,21 @@ export interface Fatura {
   createdAt: string;
 }
 
+export interface LimiteUso {
+  atual: number;
+  /** `null` = ilimitado (PRO ativo). */
+  maximo: number | null;
+}
+
 export interface AssinaturaComFaturas {
   assinatura: Assinatura;
   faturas: Fatura[];
+  planoEfetivo: "free" | "pro";
+  bloqueada: boolean;
+  limites: {
+    usuarios: LimiteUso;
+    projetos: LimiteUso;
+  };
 }
 
 export const assinaturaApi = {

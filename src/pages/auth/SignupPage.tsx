@@ -7,12 +7,20 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 import logo from "@/assets/orbita-lockup-branco.svg";
+
+const PLANOS = [
+  { id: "free" as const, nome: "Free", preco: "Grátis", descricao: "1 usuário · 1 projeto" },
+  { id: "pro" as const, nome: "PRO", preco: "R$ 97/mês", descricao: "Usuários e projetos ilimitados" },
+];
 
 export function SignupPage() {
   const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
   const [loading, setLoading] = useState(false);
+  const [plano, setPlano] = useState<"free" | "pro">("free");
   const [form, setForm] = useState({
     razaoSocial: "",
     nomeFantasia: "",
@@ -40,10 +48,16 @@ export function SignupPage() {
           email: form.empresaEmail,
         },
         responsavel: { nome: form.nome, cpf: form.cpf, email: form.email, senha: form.senha },
+        plano,
       });
-      setSession({ usuario: result.usuario, empresa: result.empresa, accessToken: result.accessToken });
-      toast.success("Empresa criada com sucesso!");
-      navigate({ to: "/financeiro" });
+      setSession({
+        usuario: result.usuario,
+        empresa: result.empresa,
+        assinatura: { plano: result.plano, status: result.plano === "pro" ? "sem_assinatura" : "ativa", bloqueada: false },
+        accessToken: result.accessToken,
+      });
+      toast.success("Empresa criada com sucesso! Enviamos um código de verificação para o seu e-mail.");
+      navigate({ to: "/verificar-email" });
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Não foi possível criar a conta.");
     } finally {
@@ -58,6 +72,35 @@ export function SignupPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-lg border border-[#1e2740] bg-[#12192b] p-6">
           <div className="flex flex-col gap-3">
+            <p className="text-xs font-medium tracking-[0.12em] text-[#9aa0b0] uppercase">Escolha seu plano</p>
+            <div className="grid grid-cols-2 gap-3">
+              {PLANOS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPlano(p.id)}
+                  className={cn(
+                    "flex flex-col gap-1 rounded-md border p-3 text-left transition-colors",
+                    plano === p.id ? "border-[#8b77ff] bg-[#8b77ff]/10" : "border-[#1e2740] hover:border-[#2a3550]",
+                  )}
+                >
+                  <span className="flex items-center justify-between text-sm font-semibold text-white">
+                    {p.nome}
+                    {plano === p.id && <Check className="size-4 text-[#8b77ff]" />}
+                  </span>
+                  <span className="text-sm font-medium text-[#8b77ff]">{p.preco}</span>
+                  <span className="text-xs text-[#9aa0b0]">{p.descricao}</span>
+                </button>
+              ))}
+            </div>
+            {plano === "pro" && (
+              <p className="text-xs text-[#9aa0b0]">
+                Depois de criar a conta, você vai para a tela de assinatura para concluir o pagamento (cartão ou PIX).
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-[#1e2740] pt-4">
             <p className="text-xs font-medium tracking-[0.12em] text-[#9aa0b0] uppercase">Empresa</p>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="razaoSocial">Razão social</Label>

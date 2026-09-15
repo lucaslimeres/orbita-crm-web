@@ -32,7 +32,9 @@ const FUNCIONALIDADES = [
   },
 ];
 
-const PLANO_INCLUI = [
+const FREE_INCLUI = ["Financeiro completo (gastos, aportes, retiradas)", "1 projeto ativo", "1 usuário", "Dashboards e relatórios inclusos"];
+
+const PRO_INCLUI = [
   "Financeiro completo (gastos, aportes, retiradas)",
   "Projetos ilimitados, cada um com seu próprio financeiro",
   "Usuários ilimitados e permissões configuráveis",
@@ -74,7 +76,7 @@ export function LandingPage() {
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link to="/cadastro">Começar agora — R$ 97/mês</Link>
+            <Link to="/cadastro">Começar grátis</Link>
           </Button>
           <Button asChild size="lg" variant="secondary">
             <a href="#funcionalidades">Ver funcionalidades</a>
@@ -102,27 +104,49 @@ export function LandingPage() {
       </section>
 
       <section id="precos" className="py-24">
-        <div className="mx-auto max-w-xl px-6 text-center">
-          <h2 className="text-3xl font-semibold tracking-[-0.02em]">Um plano. Tudo incluso.</h2>
-          <p className="mt-3 text-[#9aa0b0]">Sem letra miúda, sem módulo trancado atrás de um plano mais caro. Planos adicionais chegam no futuro — hoje é só este.</p>
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="text-3xl font-semibold tracking-[-0.02em]">Comece grátis. Assine quando fizer sentido.</h2>
+          <p className="mt-3 text-[#9aa0b0]">Sem letra miúda, sem módulo trancado atrás de um plano mais caro — o Free já tem tudo, só limitado em volume.</p>
 
-          <div className="mt-10 rounded-2xl border border-[#1e2740] bg-[#12192b] p-8 text-left">
-            <p className="text-xs font-medium tracking-[0.12em] text-[#8b77ff] uppercase">Plano único</p>
-            <p className="mt-2 font-numeric text-5xl font-semibold">
-              R$ 97<span className="text-lg font-normal text-[#9aa0b0]">/mês</span>
-            </p>
-            <ul className="mt-6 flex flex-col gap-3">
-              {PLANO_INCLUI.map((item) => (
-                <li key={item} className="flex items-start gap-2.5 text-sm">
-                  <Check className="mt-0.5 size-4 shrink-0 text-positive" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Button asChild size="lg" className="mt-8 w-full">
-              <Link to="/cadastro">Assinar agora</Link>
-            </Button>
-            <p className="mt-3 text-center text-xs text-[#9aa0b0]">Cartão ou PIX. Cancele quando quiser.</p>
+          <div className="mt-10 grid grid-cols-1 gap-6 text-left sm:grid-cols-2">
+            <div className="rounded-2xl border border-[#1e2740] bg-[#12192b] p-8">
+              <p className="text-xs font-medium tracking-[0.12em] text-[#9aa0b0] uppercase">Plano Free</p>
+              <p className="mt-2 font-numeric text-5xl font-semibold">
+                R$ 0<span className="text-lg font-normal text-[#9aa0b0]">/mês</span>
+              </p>
+              <ul className="mt-6 flex flex-col gap-3">
+                {FREE_INCLUI.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm">
+                    <Check className="mt-0.5 size-4 shrink-0 text-positive" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button asChild size="lg" variant="secondary" className="mt-8 w-full">
+                <Link to="/cadastro">Criar conta grátis</Link>
+              </Button>
+              <p className="mt-3 text-center text-xs text-[#9aa0b0]">Sem cartão de crédito. 1 usuário, 1 projeto.</p>
+            </div>
+
+            <div className="relative rounded-2xl border border-[#8b77ff] bg-[#12192b] p-8">
+              <span className="absolute -top-3 left-8 rounded-full bg-[#8b77ff] px-3 py-1 text-xs font-medium text-[#0b1220]">Mais popular</span>
+              <p className="text-xs font-medium tracking-[0.12em] text-[#8b77ff] uppercase">Plano Pro</p>
+              <p className="mt-2 font-numeric text-5xl font-semibold">
+                R$ 97<span className="text-lg font-normal text-[#9aa0b0]">/mês</span>
+              </p>
+              <ul className="mt-6 flex flex-col gap-3">
+                {PRO_INCLUI.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm">
+                    <Check className="mt-0.5 size-4 shrink-0 text-positive" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button asChild size="lg" className="mt-8 w-full">
+                <Link to="/cadastro">Assinar Pro</Link>
+              </Button>
+              <p className="mt-3 text-center text-xs text-[#9aa0b0]">Cartão ou PIX. Cancele quando quiser.</p>
+            </div>
           </div>
         </div>
       </section>

@@ -2,7 +2,21 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      Símbolo do Órbita como favicon, em duas versões (ver ../identidade-visual):
+      a "cor" (anel/núcleo em #0B1220) para navegador em tema claro, a "branco"
+      (tudo em #FFFFFF) para tema escuro — sem isso, a versão escura fica quase
+      invisível numa aba de navegador com chrome dark. PNGs como fallback do SVG
+      para navegadores sem suporte a favicon vetorial (ex.: Safari mais antigo).
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48-dark.png" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32-dark.png" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16-dark.png" media="(prefers-color-scheme: dark)" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Órbita</title>
   </head>

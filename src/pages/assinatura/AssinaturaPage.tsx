@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { assinaturaApi } from "@/api/assinatura";
 import { tokenizeCard } from "@/lib/pagarme";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/format";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,10 +30,17 @@ const STATUS_VARIANT: Record<string, "positive" | "warning" | "negative" | "outl
 
 export function AssinaturaPage() {
   const queryClient = useQueryClient();
+  const setAssinatura = useAuthStore((s) => s.setAssinatura);
   const [metodo, setMetodo] = useState<"cartao" | "pix" | null>(null);
   const [cardForm, setCardForm] = useState({ number: "", holderName: "", expMonth: "", expYear: "", cvv: "" });
 
   const { data, isLoading } = useQuery({ queryKey: ["assinatura"], queryFn: () => assinaturaApi.status() });
+
+  // Mantém a sessão em sincronia — é o que o AppLayout/VerifyEmailCodePage usam pra
+  // decidir redirecionamento sem precisar buscar de novo.
+  useEffect(() => {
+    if (data) setAssinatura({ plano: data.planoEfetivo, status: data.assinatura.status, bloqueada: data.bloqueada });
+  }, [data, setAssinatura]);
 
   const checkoutCartaoMutation = useMutation({
     mutationFn: async () => {
@@ -63,8 +72,10 @@ export function AssinaturaPage() {
 
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">Carregando...</p>;
 
-  const { assinatura, faturas } = data;
+  const { assinatura, faturas, planoEfetivo, bloqueada, limites } = data;
   const faturaPixPendente = faturas.find((f) => f.formaPagamento === "pix" && f.status === "pendente");
+  // Free, sem_assinatura, atrasada ou cancelada — qualquer coisa que não seja PRO pago e em dia precisa de ação aqui.
+  const precisaPagar = planoEfetivo !== "pro";
 
   function copiarCodigoPix(codigo: string) {
     navigator.clipboard.writeText(codigo);
@@ -78,11 +89,25 @@ export function AssinaturaPage() {
         <p className="text-sm text-muted-foreground">Plano e forma de pagamento da mensalidade do Órbita.</p>
       </div>
 
+      {bloqueada && (
+        <Card className="border-negative/30 bg-negative/10">
+          <CardContent className="flex items-start gap-3 pt-5 text-negative">
+            <AlertTriangle className="size-5 shrink-0" />
+            <p className="text-sm">
+              Sua assinatura PRO venceu em <strong>{assinatura.proximaCobranca ? formatDate(assinatura.proximaCobranca) : "—"}</strong> e não foi renovada — o
+              restante do sistema fica bloqueado até o pagamento ser confirmado.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
           <div>
-            <CardDescription>Plano único</CardDescription>
-            <CardTitle className="mt-1 font-numeric text-3xl">{formatMoney(assinatura.valorCentavos)}/mês</CardTitle>
+            <CardDescription>Plano {planoEfetivo === "pro" ? "PRO" : "Free"}</CardDescription>
+            <CardTitle className="mt-1 font-numeric text-3xl">
+              {planoEfetivo === "pro" ? `${formatMoney(assinatura.valorCentavos)}/mês` : "Grátis"}
+            </CardTitle>
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <Badge variant={STATUS_VARIANT[assinatura.status]}>{STATUS_LABEL[assinatura.status]}</Badge>
@@ -91,12 +116,33 @@ export function AssinaturaPage() {
                 {assinatura.cartaoBandeira} •••• {assinatura.cartaoFinal}
               </span>
             )}
-            {assinatura.proximaCobranca && <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDate(assinatura.proximaCobranca)}</span>}
+            {planoEfetivo === "pro" && assinatura.proximaCobranca && (
+              <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDate(assinatura.proximaCobranca)}</span>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {faturaPixPendente ? (
+      {planoEfetivo === "free" && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">Limites do plano Free</p>
+              <p className="text-sm text-muted-foreground">
+                {limites.usuarios.atual}/{limites.usuarios.maximo} usuário{(limites.usuarios.maximo ?? 0) > 1 ? "s" : ""} ·{" "}
+                {limites.projetos.atual}/{limites.projetos.maximo} projeto{(limites.projetos.maximo ?? 0) > 1 ? "s" : ""}
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">Assine o PRO abaixo para liberar usuários e projetos ilimitados.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!precisaPagar ? (
+        <Card>
+          <CardContent className="pt-5 text-sm text-muted-foreground">Seu plano PRO está ativo — usuários e projetos ilimitados.</CardContent>
+        </Card>
+      ) : faturaPixPendente ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 pt-5 text-center">
             <CardDescription>PIX gerado — pague para ativar a assinatura</CardDescription>

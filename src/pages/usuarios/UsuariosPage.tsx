@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { usuariosApi, type CreateUsuarioRequest } from "@/api/usuarios";
 import { rolesApi } from "@/api/roles";
+import { assinaturaApi } from "@/api/assinatura";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,10 @@ export function UsuariosPage() {
   const { data: usuarios = [] } = useQuery({ queryKey: ["usuarios"], queryFn: () => usuariosApi.list() });
   const { data: roles = [] } = useQuery({ queryKey: ["roles"], queryFn: () => rolesApi.list() });
   const { data: catalogoPermissoes = [] } = useQuery({ queryKey: ["roles", "permissoes"], queryFn: () => rolesApi.listPermissoesDisponiveis() });
+  const { data: assinaturaData } = useQuery({ queryKey: ["assinatura"], queryFn: () => assinaturaApi.status() });
+
+  const limiteUsuarios = assinaturaData?.limites.usuarios;
+  const limiteAtingido = limiteUsuarios?.maximo != null && limiteUsuarios.atual >= limiteUsuarios.maximo;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateUsuarioRequest) => usuariosApi.create(data),
@@ -51,50 +57,70 @@ export function UsuariosPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.02em]">Usuários</h1>
-        <p className="text-sm text-muted-foreground">Quem tem acesso à empresa e com qual perfil.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em]">Usuários</h1>
+          <p className="text-sm text-muted-foreground">Quem tem acesso à empresa e com qual perfil.</p>
+        </div>
+        {limiteUsuarios?.maximo != null && (
+          <Badge variant={limiteAtingido ? "warning" : "outline"}>
+            Plano Free · {limiteUsuarios.atual}/{limiteUsuarios.maximo} usuário{limiteUsuarios.maximo > 1 ? "s" : ""}
+          </Badge>
+        )}
       </div>
 
       <section className="flex flex-col gap-3">
-        <Card>
-          <CardContent className="pt-5">
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 md:grid-cols-5">
-              <div className="flex flex-col gap-1.5">
-                <Label>Nome</Label>
-                <Input required value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>CPF</Label>
-                <Input required value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>E-mail</Label>
-                <Input type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Senha inicial</Label>
-                <Input type="password" required minLength={8} value={form.senha} onChange={(e) => setForm((f) => ({ ...f, senha: e.target.value }))} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Perfil</Label>
-                <Select value={form.roleId || ""} onChange={(e) => setForm((f) => ({ ...f, roleId: Number(e.target.value) }))}>
-                  <option value="">Selecione</option>
-                  {roles.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nome}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div className="col-span-2 flex items-end md:col-span-5">
-                <Button type="submit" disabled={createMutation.isPending}>
-                  Criar usuário
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        {limiteAtingido ? (
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
+              <p className="text-sm text-muted-foreground">
+                Você atingiu o limite de {limiteUsuarios?.maximo} usuário do plano Free. Faça upgrade para o PRO para adicionar mais.
+              </p>
+              <Button asChild>
+                <Link to="/assinatura">Fazer upgrade para o PRO</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="pt-5">
+              <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 md:grid-cols-5">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Nome</Label>
+                  <Input required value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>CPF</Label>
+                  <Input required value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>E-mail</Label>
+                  <Input type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Senha inicial</Label>
+                  <Input type="password" required minLength={8} value={form.senha} onChange={(e) => setForm((f) => ({ ...f, senha: e.target.value }))} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Perfil</Label>
+                  <Select value={form.roleId || ""} onChange={(e) => setForm((f) => ({ ...f, roleId: Number(e.target.value) }))}>
+                    <option value="">Selecione</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.nome}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="col-span-2 flex items-end md:col-span-5">
+                  <Button type="submit" disabled={createMutation.isPending}>
+                    Criar usuário
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <Table>

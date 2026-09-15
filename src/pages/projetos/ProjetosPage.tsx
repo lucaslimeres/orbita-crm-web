@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { projetosApi, type CreateProjetoRequest, type ProjetoTipo } from "@/api/projetos";
 import { usuariosApi } from "@/api/usuarios";
+import { assinaturaApi } from "@/api/assinatura";
 import { ApiError } from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,10 @@ export function ProjetosPage() {
 
   const { data: projetos = [], isLoading } = useQuery({ queryKey: ["projetos"], queryFn: () => projetosApi.list() });
   const { data: usuarios = [] } = useQuery({ queryKey: ["usuarios"], queryFn: () => usuariosApi.list() });
+  const { data: assinaturaData } = useQuery({ queryKey: ["assinatura"], queryFn: () => assinaturaApi.status() });
+
+  const limiteProjetos = assinaturaData?.limites.projetos;
+  const limiteAtingido = limiteProjetos?.maximo != null && limiteProjetos.atual >= limiteProjetos.maximo;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateProjetoRequest) => projetosApi.create(data),
@@ -70,17 +75,30 @@ export function ProjetosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-[-0.02em]">Projetos</h1>
           <p className="text-sm text-muted-foreground">Todos os produtos e projetos da empresa.</p>
         </div>
-        <Button onClick={() => setShowForm((v) => !v)}>
-          <Plus className="size-4" /> Novo projeto
-        </Button>
+        <div className="flex items-center gap-2">
+          {limiteProjetos?.maximo != null && (
+            <Badge variant={limiteAtingido ? "warning" : "outline"}>
+              Plano Free · {limiteProjetos.atual}/{limiteProjetos.maximo} projeto{limiteProjetos.maximo > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {limiteAtingido ? (
+            <Button asChild>
+              <Link to="/assinatura">Fazer upgrade para o PRO</Link>
+            </Button>
+          ) : (
+            <Button onClick={() => setShowForm((v) => !v)}>
+              <Plus className="size-4" /> Novo projeto
+            </Button>
+          )}
+        </div>
       </div>
 
-      {showForm && (
+      {showForm && !limiteAtingido && (
         <Card>
           <CardContent className="pt-5">
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
