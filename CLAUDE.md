@@ -22,6 +22,9 @@ Estrutura:
 - `src/routeTree.gen.ts` — **gerado automaticamente** pelo plugin do TanStack Router
   (`vite.config.ts`) a partir de `src/routes/`. Não editar à mão; roda de novo sozinho
   em qualquer `dev`/`build`.
+- `/` é a landing page pública (`src/pages/landing/`) — redireciona pra `/financeiro`
+  se já houver sessão. É a única página com o wrapper `dark` fixo (não segue o toggle
+  de tema do usuário, igual `/login` e `/cadastro`).
 
 **v1 usa `useState` + validação manual nos formulários, não React Hook Form/Zod** — os
 forms são simples o bastante (poucos campos, sem validação cruzada) que a abstração não
@@ -40,3 +43,7 @@ naquele form específico — não é preciso migrar tudo de uma vez.
 - Sem refresh token na v1 (ver `../api/README.md`) — sessão expira e desloga sozinha
   depois de 7 dias; não implementar renovação silenciosa sem antes checar se a API já
   suporta.
+- **Cartão de assinatura nunca vai pro nosso backend** — `src/lib/pagarme.ts` tokeniza
+  direto no Pagar.me (`VITE_PAGARME_PUBLIC_KEY`) e só o token sai do navegador. Não
+  "simplificar" isso mandando o `cardForm` cru pra API — é a única coisa deste projeto
+  onde a v1 é deliberadamente mais rigorosa que o Palpite Arena, não mais simples.

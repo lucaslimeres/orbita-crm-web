@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useTheme } from "next-themes";
-import { LayoutDashboard, LogOut, Moon, Sun, Users, Wallet } from "lucide-react";
+import { CreditCard, LayoutDashboard, LogOut, Moon, Sun, Users, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/projetos", label: "Projetos", icon: LayoutDashboard },
   { to: "/usuarios", label: "Usuários", icon: Users },
+  { to: "/assinatura", label: "Assinatura", icon: CreditCard },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {

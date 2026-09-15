@@ -14,7 +14,9 @@ yarn dev
 
 Por padrão aponta para `http://localhost:3000` (a `orbita-api` rodando localmente).
 Para apontar para a API no Railway, copie `.env.example` para `.env` e ajuste
-`VITE_API_URL`.
+`VITE_API_URL`. Para a tela de assinatura funcionar, preencha também
+`VITE_PAGARME_PUBLIC_KEY` (a chave pública do Pagar.me, `pk_...` — ver
+`../docs/assinatura.md`).
 
 ## Build
 
@@ -44,8 +46,17 @@ src/
 ├── lib/            # api client, query client, auth helper, formatação de dinheiro/data
 ├── stores/         # Zustand (sessão de auth)
 ├── pages/          # componentes de página, organizados por módulo
+│   └── landing/    # página inicial pública (marketing) em "/"
 └── routes/         # arquivos de rota do TanStack Router (file-based)
 ```
+
+## Landing page e assinatura
+
+`/` é pública e mostra a landing page (`src/pages/landing/LandingPage.tsx`) para quem
+não está logado — redireciona direto para `/financeiro` se já houver sessão. A tela de
+assinatura (`/assinatura`, autenticada) tokeniza o cartão direto no navegador via
+`src/lib/pagarme.ts` — o número/CVV nunca passam pela nossa API. Ver
+`../docs/assinatura.md` para o fluxo completo.
 
 ## Autenticação
 
