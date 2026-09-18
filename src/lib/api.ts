@@ -50,7 +50,18 @@ async function request<T>(method: HttpMethod, path: string, body?: unknown): Pro
     let data: unknown;
     try {
       data = await res.json();
-      message = (data as { message?: string })?.message ?? message;
+      // Erro de negócio (`throw new Error(...)` nos services): `{ message }`.
+      // Falha de validação Zod (`schema.parse`): `{ errors: [{ message, path, ... }] }`,
+      // sem `message` no topo — sem isso, cai no fallback genérico "HTTP 400".
+      const body = data as { message?: string; errors?: Array<{ message?: string; path?: (string | number)[] }> };
+      if (body?.message) {
+        message = body.message;
+      } else if (Array.isArray(body?.errors) && body.errors.length > 0) {
+        message = body.errors
+          .map((e) => (e.path?.length ? `${e.path.join(".")}: ${e.message}` : e.message))
+          .filter(Boolean)
+          .join(" | ");
+      }
     } catch {
       // corpo vazio ou não-JSON
     }
