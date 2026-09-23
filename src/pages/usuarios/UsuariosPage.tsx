@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const emptyForm: CreateUsuarioRequest = { roleId: 0, nome: "", cpf: "", email: "", senha: "" };
+const emptyForm: CreateUsuarioRequest = { roleId: 0, nome: "", cpf: "", email: "" };
 
 export function UsuariosPage() {
   const queryClient = useQueryClient();
@@ -33,7 +33,7 @@ export function UsuariosPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
       setForm(emptyForm);
-      toast.success("Usuário criado. Repasse a senha para ele por fora do sistema.");
+      toast.success("Usuário criado. Um e-mail de convite foi enviado para ele definir a senha.");
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível criar o usuário."),
   });
@@ -84,7 +84,7 @@ export function UsuariosPage() {
         ) : (
           <Card>
             <CardContent className="pt-5">
-              <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 md:grid-cols-5">
+              <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Nome</Label>
                   <Input required value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} />
@@ -98,10 +98,6 @@ export function UsuariosPage() {
                   <Input type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label>Senha inicial</Label>
-                  <Input type="password" required minLength={8} value={form.senha} onChange={(e) => setForm((f) => ({ ...f, senha: e.target.value }))} />
-                </div>
-                <div className="flex flex-col gap-1.5">
                   <Label>Perfil</Label>
                   <Select value={form.roleId || ""} onChange={(e) => setForm((f) => ({ ...f, roleId: Number(e.target.value) }))}>
                     <option value="">Selecione</option>
@@ -112,7 +108,7 @@ export function UsuariosPage() {
                     ))}
                   </Select>
                 </div>
-                <div className="col-span-2 flex items-end md:col-span-5">
+                <div className="col-span-2 flex items-end md:col-span-4">
                   <Button type="submit" disabled={createMutation.isPending}>
                     Criar usuário
                   </Button>
@@ -139,7 +135,11 @@ export function UsuariosPage() {
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
                   <TableCell>{roles.find((r) => r.id === u.roleId)?.nome ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={u.ativo ? "positive" : "outline"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
+                    {!u.confirmado ? (
+                      <Badge variant="warning">Convidado</Badge>
+                    ) : (
+                      <Badge variant={u.ativo ? "positive" : "outline"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

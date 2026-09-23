@@ -38,11 +38,11 @@ export function AdminAdministradoresPage() {
   }
 
   const createMutation = useMutation({
-    mutationFn: () => adminPanelApi.createAdmin({ nome: form.nome, email: form.email, senha: form.senha }),
+    mutationFn: () => adminPanelApi.createAdmin({ nome: form.nome, email: form.email }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "administradores"] });
       setDialogOpen(false);
-      toast.success("Administrador criado.");
+      toast.success("Administrador criado. Um e-mail de convite foi enviado para ele definir a senha.");
     },
     onError: (error) => toast.error(error instanceof AdminApiError ? error.message : "Não foi possível criar o administrador."),
   });
@@ -142,7 +142,11 @@ export function AdminAdministradoresPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{conta.email}</TableCell>
                 <TableCell>
-                  <Badge variant={conta.ativo ? "positive" : "outline"}>{conta.ativo ? "Ativo" : "Inativo"}</Badge>
+                  {!conta.confirmado ? (
+                    <Badge variant="warning">Convidado</Badge>
+                  ) : (
+                    <Badge variant={conta.ativo ? "positive" : "outline"}>{conta.ativo ? "Ativo" : "Inativo"}</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{formatDate(conta.createdAt)}</TableCell>
                 <TableCell className="text-right">
@@ -178,7 +182,9 @@ export function AdminAdministradoresPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editando ? "Editar administrador" : "Novo administrador"}</DialogTitle>
-            <DialogDescription>{editando ? "Deixe a senha em branco para manter a atual." : "Ele poderá entrar imediatamente com essas credenciais."}</DialogDescription>
+            <DialogDescription>
+              {editando ? "Deixe a senha em branco para manter a atual." : "Um e-mail de convite será enviado para ele definir a própria senha."}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -190,17 +196,18 @@ export function AdminAdministradoresPage() {
               <Label htmlFor="email">E-mail</Label>
               <Input id="email" type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="senha">{editando ? "Nova senha (opcional)" : "Senha"}</Label>
-              <Input
-                id="senha"
-                type="password"
-                required={!editando}
-                minLength={8}
-                value={form.senha}
-                onChange={(e) => setForm((f) => ({ ...f, senha: e.target.value }))}
-              />
-            </div>
+            {editando && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="senha">Nova senha (opcional)</Label>
+                <Input
+                  id="senha"
+                  type="password"
+                  minLength={8}
+                  value={form.senha}
+                  onChange={(e) => setForm((f) => ({ ...f, senha: e.target.value }))}
+                />
+              </div>
+            )}
             <Button type="submit" disabled={salvando} className="mt-2">
               {salvando ? "Salvando..." : editando ? "Salvar alterações" : "Criar administrador"}
             </Button>

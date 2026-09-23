@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as CadastroRouteImport } from './routes/cadastro'
+import { Route as ConviteRouteImport } from './routes/convite'
 import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
@@ -20,6 +21,7 @@ import { Route as AuthenticatedAssinaturaRouteImport } from './routes/_authentic
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
+import { Route as AdminConviteRouteImport } from './routes/admin/convite'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos/index'
 import { Route as AuthenticatedProjetosProjetoIdRouteImport } from './routes/_authenticated/projetos/$projetoId'
@@ -41,6 +43,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const CadastroRoute = CadastroRouteImport.update({
   id: '/cadastro',
   path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConviteRoute = ConviteRouteImport.update({
+  id: '/convite',
+  path: '/convite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
@@ -81,6 +88,11 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
 const AdminAuthenticatedRoute = AdminAuthenticatedRouteImport.update({
   id: '/admin/_authenticated',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminConviteRoute = AdminConviteRouteImport.update({
+  id: '/admin/convite',
+  path: '/admin/convite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -133,6 +145,7 @@ const AdminAuthenticatedContasEmpresaIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cadastro': typeof CadastroRoute
+  '/convite': typeof ConviteRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/login': typeof LoginRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -141,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin': typeof AdminAuthenticatedRouteWithChildren
+  '/admin/convite': typeof AdminConviteRoute
   '/admin/login': typeof AdminLoginRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
@@ -153,6 +167,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cadastro': typeof CadastroRoute
+  '/convite': typeof ConviteRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/login': typeof LoginRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -160,6 +175,7 @@ export interface FileRoutesByTo {
   '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/admin/convite': typeof AdminConviteRoute
   '/admin/login': typeof AdminLoginRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
@@ -174,6 +190,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/cadastro': typeof CadastroRoute
+  '/convite': typeof ConviteRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/login': typeof LoginRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -182,6 +199,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
+  '/admin/convite': typeof AdminConviteRoute
   '/admin/login': typeof AdminLoginRoute
   '/_authenticated/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/_authenticated/administradores': typeof AdminAuthenticatedAdministradoresRoute
@@ -196,6 +214,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/cadastro'
+    | '/convite'
     | '/esqueci-senha'
     | '/login'
     | '/redefinir-senha'
@@ -204,6 +223,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/usuarios'
     | '/admin'
+    | '/admin/convite'
     | '/admin/login'
     | '/projetos/$projetoId'
     | '/admin/administradores'
@@ -216,6 +236,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/cadastro'
+    | '/convite'
     | '/esqueci-senha'
     | '/login'
     | '/redefinir-senha'
@@ -223,6 +244,7 @@ export interface FileRouteTypes {
     | '/assinatura'
     | '/financeiro'
     | '/usuarios'
+    | '/admin/convite'
     | '/admin/login'
     | '/projetos/$projetoId'
     | '/admin/administradores'
@@ -236,6 +258,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/cadastro'
+    | '/convite'
     | '/esqueci-senha'
     | '/login'
     | '/redefinir-senha'
@@ -244,6 +267,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro'
     | '/_authenticated/usuarios'
     | '/admin/_authenticated'
+    | '/admin/convite'
     | '/admin/login'
     | '/_authenticated/projetos/$projetoId'
     | '/admin/_authenticated/administradores'
@@ -258,11 +282,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   CadastroRoute: typeof CadastroRoute
+  ConviteRoute: typeof ConviteRoute
   EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   LoginRoute: typeof LoginRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   VerificarEmailRoute: typeof VerificarEmailRoute
   AdminAuthenticatedRoute: typeof AdminAuthenticatedRouteWithChildren
+  AdminConviteRoute: typeof AdminConviteRoute
   AdminLoginRoute: typeof AdminLoginRoute
 }
 
@@ -287,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/cadastro'
       fullPath: '/cadastro'
       preLoaderRoute: typeof CadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/convite': {
+      id: '/convite'
+      path: '/convite'
+      fullPath: '/convite'
+      preLoaderRoute: typeof ConviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/esqueci-senha': {
@@ -343,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminAuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/convite': {
+      id: '/admin/convite'
+      path: '/admin/convite'
+      fullPath: '/admin/convite'
+      preLoaderRoute: typeof AdminConviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -449,11 +489,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   CadastroRoute: CadastroRoute,
+  ConviteRoute: ConviteRoute,
   EsqueciSenhaRoute: EsqueciSenhaRoute,
   LoginRoute: LoginRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   VerificarEmailRoute: VerificarEmailRoute,
   AdminAuthenticatedRoute: AdminAuthenticatedRouteWithChildren,
+  AdminConviteRoute: AdminConviteRoute,
   AdminLoginRoute: AdminLoginRoute,
 }
 export const routeTree = rootRouteImport

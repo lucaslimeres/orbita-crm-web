@@ -10,6 +10,7 @@ export interface AuthUsuario {
   cpf: string;
   telefone: string | null;
   ativo: boolean;
+  confirmado: boolean;
 }
 
 export interface AuthEmpresa {

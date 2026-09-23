@@ -104,13 +104,18 @@ export interface AdminAccount {
   nome: string;
   email: string;
   ativo: boolean;
+  confirmado: boolean;
   createdAt: string;
 }
 
 export interface CreateAdminAccountInput {
   nome: string;
   email: string;
-  senha: string;
+}
+
+export interface ConfirmarConviteAdminInput {
+  token: string;
+  novaSenha: string;
 }
 
 export interface UpdateAdminAccountInput {
@@ -145,4 +150,5 @@ export const adminPanelApi = {
   createAdmin: (data: CreateAdminAccountInput) => adminApi.post<AdminAccount>("/admin/administradores", data),
   updateAdmin: (id: string, data: UpdateAdminAccountInput) => adminApi.patch<AdminAccount>(`/admin/administradores/${id}`, data),
   deleteAdmin: (id: string) => adminApi.delete<void>(`/admin/administradores/${id}`),
+  confirmarConvite: (data: ConfirmarConviteAdminInput) => adminApi.post<{ message: string }>("/admin/confirmar-convite", data),
 };
