@@ -13,6 +13,8 @@ export interface Assinatura {
   cartaoFinal: string | null;
   cartaoBandeira: string | null;
   proximaCobranca: string | null;
+  /** Falhas consecutivas de cobrança no cartão desde o último pagamento confirmado — zera a cada sucesso. */
+  tentativasFalhaCartao: number;
 }
 
 export interface Fatura {

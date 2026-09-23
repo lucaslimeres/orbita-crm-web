@@ -25,6 +25,12 @@ Estrutura:
 - `/` é a landing page pública (`src/pages/landing/`) — redireciona pra `/financeiro`
   se já houver sessão. É a única página com o wrapper `dark` fixo (não segue o toggle
   de tema do usuário, igual `/login` e `/cadastro`).
+- `/admin/*` é o painel administrativo interno (`src/pages/admin/`, `src/routes/admin/`)
+  — área **completamente isolada** da sessão de usuário comum: store própria
+  (`useAdminAuthStore`, localStorage `orbita-admin-auth`), client HTTP próprio
+  (`lib/adminApi.ts`, nunca `lib/api.ts`), layout próprio (`AdminLayout`, tema escuro
+  fixo). Nunca misturar imports/estado entre essa área e o resto do app. Ver
+  `../docs/admin.md`.
 
 **v1 usa `useState` + validação manual nos formulários, não React Hook Form/Zod** — os
 forms são simples o bastante (poucos campos, sem validação cruzada) que a abstração não

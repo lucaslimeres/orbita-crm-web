@@ -19,8 +19,15 @@ import { Route as VerificarEmailRouteImport } from './routes/verificar-email'
 import { Route as AuthenticatedAssinaturaRouteImport } from './routes/_authenticated/assinatura'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos/index'
 import { Route as AuthenticatedProjetosProjetoIdRouteImport } from './routes/_authenticated/projetos/$projetoId'
+import { Route as AdminAuthenticatedIndexRouteImport } from './routes/admin/_authenticated/index'
+import { Route as AdminAuthenticatedAdministradoresRouteImport } from './routes/admin/_authenticated/administradores'
+import { Route as AdminAuthenticatedFinanceiroRouteImport } from './routes/admin/_authenticated/financeiro'
+import { Route as AdminAuthenticatedContasIndexRouteImport } from './routes/admin/_authenticated/contas/index'
+import { Route as AdminAuthenticatedContasEmpresaIdRouteImport } from './routes/admin/_authenticated/contas/$empresaId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,6 +78,16 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AdminAuthenticatedRoute = AdminAuthenticatedRouteImport.update({
+  id: '/admin/_authenticated',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProjetosIndexRoute =
   AuthenticatedProjetosIndexRouteImport.update({
     id: '/projetos/',
@@ -83,6 +100,35 @@ const AuthenticatedProjetosProjetoIdRoute =
     path: '/projetos/$projetoId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AdminAuthenticatedIndexRoute = AdminAuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAuthenticatedRoute,
+} as any)
+const AdminAuthenticatedAdministradoresRoute =
+  AdminAuthenticatedAdministradoresRouteImport.update({
+    id: '/administradores',
+    path: '/administradores',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
+const AdminAuthenticatedFinanceiroRoute =
+  AdminAuthenticatedFinanceiroRouteImport.update({
+    id: '/financeiro',
+    path: '/financeiro',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
+const AdminAuthenticatedContasIndexRoute =
+  AdminAuthenticatedContasIndexRouteImport.update({
+    id: '/contas/',
+    path: '/contas/',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
+const AdminAuthenticatedContasEmpresaIdRoute =
+  AdminAuthenticatedContasEmpresaIdRouteImport.update({
+    id: '/contas/$empresaId',
+    path: '/contas/$empresaId',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,8 +140,15 @@ export interface FileRoutesByFullPath {
   '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/admin': typeof AdminAuthenticatedRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
+  '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/admin/': typeof AdminAuthenticatedIndexRoute
+  '/admin/contas/$empresaId': typeof AdminAuthenticatedContasEmpresaIdRoute
+  '/admin/contas/': typeof AdminAuthenticatedContasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,8 +160,14 @@ export interface FileRoutesByTo {
   '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/admin/login': typeof AdminLoginRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
+  '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
+  '/admin': typeof AdminAuthenticatedIndexRoute
+  '/admin/contas/$empresaId': typeof AdminAuthenticatedContasEmpresaIdRoute
+  '/admin/contas': typeof AdminAuthenticatedContasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,8 +181,15 @@ export interface FileRoutesById {
   '/_authenticated/assinatura': typeof AuthenticatedAssinaturaRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
   '/_authenticated/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
+  '/admin/_authenticated/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/_authenticated/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/admin/_authenticated/': typeof AdminAuthenticatedIndexRoute
+  '/admin/_authenticated/contas/$empresaId': typeof AdminAuthenticatedContasEmpresaIdRoute
+  '/admin/_authenticated/contas/': typeof AdminAuthenticatedContasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,8 +203,15 @@ export interface FileRouteTypes {
     | '/assinatura'
     | '/financeiro'
     | '/usuarios'
+    | '/admin'
+    | '/admin/login'
     | '/projetos/$projetoId'
+    | '/admin/administradores'
+    | '/admin/financeiro'
     | '/projetos/'
+    | '/admin/'
+    | '/admin/contas/$empresaId'
+    | '/admin/contas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,8 +223,14 @@ export interface FileRouteTypes {
     | '/assinatura'
     | '/financeiro'
     | '/usuarios'
+    | '/admin/login'
     | '/projetos/$projetoId'
+    | '/admin/administradores'
+    | '/admin/financeiro'
     | '/projetos'
+    | '/admin'
+    | '/admin/contas/$empresaId'
+    | '/admin/contas'
   id:
     | '__root__'
     | '/'
@@ -164,8 +243,15 @@ export interface FileRouteTypes {
     | '/_authenticated/assinatura'
     | '/_authenticated/financeiro'
     | '/_authenticated/usuarios'
+    | '/admin/_authenticated'
+    | '/admin/login'
     | '/_authenticated/projetos/$projetoId'
+    | '/admin/_authenticated/administradores'
+    | '/admin/_authenticated/financeiro'
     | '/_authenticated/projetos/'
+    | '/admin/_authenticated/'
+    | '/admin/_authenticated/contas/$empresaId'
+    | '/admin/_authenticated/contas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -176,6 +262,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   VerificarEmailRoute: typeof VerificarEmailRoute
+  AdminAuthenticatedRoute: typeof AdminAuthenticatedRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -250,6 +338,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/admin/_authenticated': {
+      id: '/admin/_authenticated'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminAuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/projetos/': {
       id: '/_authenticated/projetos/'
       path: '/projetos'
@@ -263,6 +365,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/projetos/$projetoId'
       preLoaderRoute: typeof AuthenticatedProjetosProjetoIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/admin/_authenticated/': {
+      id: '/admin/_authenticated/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAuthenticatedIndexRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/administradores': {
+      id: '/admin/_authenticated/administradores'
+      path: '/administradores'
+      fullPath: '/admin/administradores'
+      preLoaderRoute: typeof AdminAuthenticatedAdministradoresRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/financeiro': {
+      id: '/admin/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/admin/financeiro'
+      preLoaderRoute: typeof AdminAuthenticatedFinanceiroRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/contas/': {
+      id: '/admin/_authenticated/contas/'
+      path: '/contas'
+      fullPath: '/admin/contas/'
+      preLoaderRoute: typeof AdminAuthenticatedContasIndexRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/contas/$empresaId': {
+      id: '/admin/_authenticated/contas/$empresaId'
+      path: '/contas/$empresaId'
+      fullPath: '/admin/contas/$empresaId'
+      preLoaderRoute: typeof AdminAuthenticatedContasEmpresaIdRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
     }
   }
 }
@@ -287,6 +424,27 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface AdminAuthenticatedRouteChildren {
+  AdminAuthenticatedAdministradoresRoute: typeof AdminAuthenticatedAdministradoresRoute
+  AdminAuthenticatedFinanceiroRoute: typeof AdminAuthenticatedFinanceiroRoute
+  AdminAuthenticatedIndexRoute: typeof AdminAuthenticatedIndexRoute
+  AdminAuthenticatedContasEmpresaIdRoute: typeof AdminAuthenticatedContasEmpresaIdRoute
+  AdminAuthenticatedContasIndexRoute: typeof AdminAuthenticatedContasIndexRoute
+}
+
+const AdminAuthenticatedRouteChildren: AdminAuthenticatedRouteChildren = {
+  AdminAuthenticatedAdministradoresRoute:
+    AdminAuthenticatedAdministradoresRoute,
+  AdminAuthenticatedFinanceiroRoute: AdminAuthenticatedFinanceiroRoute,
+  AdminAuthenticatedIndexRoute: AdminAuthenticatedIndexRoute,
+  AdminAuthenticatedContasEmpresaIdRoute:
+    AdminAuthenticatedContasEmpresaIdRoute,
+  AdminAuthenticatedContasIndexRoute: AdminAuthenticatedContasIndexRoute,
+}
+
+const AdminAuthenticatedRouteWithChildren =
+  AdminAuthenticatedRoute._addFileChildren(AdminAuthenticatedRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
@@ -295,6 +453,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   VerificarEmailRoute: VerificarEmailRoute,
+  AdminAuthenticatedRoute: AdminAuthenticatedRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
