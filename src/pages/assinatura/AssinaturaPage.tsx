@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CreditCard, QrCode } from "lucide-react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { assinaturaApi } from "@/api/assinatura";
 import { tokenizeCard } from "@/lib/pagarme";
@@ -34,6 +35,9 @@ const MAX_TENTATIVAS_FALHA_CARTAO = 3;
 
 export function AssinaturaPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { pagar } = useSearch({ from: "/_authenticated/assinatura" });
+  const pagarAbertoRef = useRef(false);
   const setAssinatura = useAuthStore((s) => s.setAssinatura);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [metodo, setMetodo] = useState<"cartao" | "pix" | null>(null);
@@ -48,6 +52,21 @@ export function AssinaturaPage() {
   }, [data, setAssinatura]);
 
   const faturaPixPendente = data?.faturas.find((f) => f.formaPagamento === "pix" && f.status === "pendente");
+  // PRO escolhido no cadastro e ainda sem nenhum pagamento — `plano` cru é "pro", mas
+  // `planoEfetivo` é "free" até o 1º pagamento (ver docs/assinatura.md).
+  const proPendente = data?.assinatura.plano === "pro" && data.assinatura.status === "sem_assinatura";
+
+  // Vindo do cadastro com PRO (`?pagar=1`), já abre o modal de pagamento uma vez — o QA
+  // não percebia que precisava clicar em "upgrade" pra pagar o plano escolhido.
+  useEffect(() => {
+    if (!pagar || !data || pagarAbertoRef.current) return;
+    pagarAbertoRef.current = true;
+    if (proPendente && !faturaPixPendente) {
+      setMetodo(null);
+      setDialogOpen(true);
+    }
+    navigate({ to: "/assinatura", search: {}, replace: true });
+  }, [pagar, data, proPendente, faturaPixPendente, navigate]);
 
   // Sem polling: o webhook do Pagar.me confirma o PIX e empurra pra cá via socket — o
   // botão "já paguei, verificar" continua existindo como fallback. Ver lib/ws.ts.
@@ -107,6 +126,9 @@ export function AssinaturaPage() {
   const { assinatura, faturas, planoEfetivo, bloqueada, limites } = data;
   // Free, sem_assinatura, atrasada ou cancelada — qualquer coisa que não seja PRO pago e em dia precisa de ação aqui.
   const precisaPagar = planoEfetivo !== "pro";
+  // Plano cru "pro" mas não pago/em dia (sem_assinatura, atrasada, cancelada) — o card de
+  // pagamento fala em ativar/regularizar o PRO em vez de "fazer upgrade".
+  const escolheuPro = assinatura.plano === "pro";
   const emRiscoDeSuspensao = assinatura.tentativasFalhaCartao > 0 && !bloqueada;
 
   function copiarCodigoPix(codigo: string) {
@@ -153,13 +175,17 @@ export function AssinaturaPage() {
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
           <div>
-            <CardDescription>Plano {planoEfetivo === "pro" ? "PRO" : "Free"}</CardDescription>
+            <CardDescription>Plano {planoEfetivo === "pro" || proPendente ? "PRO" : "Free"}</CardDescription>
             <CardTitle className="mt-1 font-numeric text-3xl">
-              {planoEfetivo === "pro" ? `${formatMoney(assinatura.valorCentavos)}/mês` : "Grátis"}
+              {planoEfetivo === "pro" || proPendente ? `${formatMoney(assinatura.valorCentavos)}/mês` : "Grátis"}
             </CardTitle>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <Badge variant={STATUS_VARIANT[assinatura.status]}>{STATUS_LABEL[assinatura.status]}</Badge>
+            {proPendente ? (
+              <Badge variant="warning">Pagamento pendente</Badge>
+            ) : (
+              <Badge variant={STATUS_VARIANT[assinatura.status]}>{STATUS_LABEL[assinatura.status]}</Badge>
+            )}
             {assinatura.formaPagamento && (
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 {assinatura.formaPagamento === "cartao" ? (
@@ -182,7 +208,7 @@ export function AssinaturaPage() {
         </CardContent>
       </Card>
 
-      {planoEfetivo === "free" && (
+      {!escolheuPro && (
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
             <div className="flex flex-col gap-1">
@@ -213,13 +239,23 @@ export function AssinaturaPage() {
             </div>
           </CardContent>
         </Card>
-      ) : precisaPagar && planoEfetivo !== "free" ? (
+      ) : precisaPagar && escolheuPro ? (
         // Free já tem seu próprio card com o botão de upgrade acima — este cobre
         // sem_assinatura (PRO escolhido no cadastro mas não pago) / atrasada / cancelada.
-        <Card>
+        <Card className={proPendente ? "border-primary/40 bg-primary/5" : undefined}>
           <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
-            <p className="text-sm text-muted-foreground">Escolha uma forma de pagamento para {bloqueada ? "reativar" : "ativar"} o plano PRO.</p>
-            <Button onClick={() => abrirDialog()}>{bloqueada ? "Regularizar pagamento" : "Escolher forma de pagamento"}</Button>
+            {proPendente ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">Falta só o pagamento para ativar o plano PRO</p>
+                <p className="text-sm text-muted-foreground">
+                  Você escolheu o PRO no cadastro. Até o pagamento ser confirmado, sua conta funciona com os limites do plano Free (
+                  {limites.usuarios.maximo} usuário · {limites.projetos.maximo} projeto).
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Escolha uma forma de pagamento para {bloqueada ? "regularizar" : "reativar"} o plano PRO.</p>
+            )}
+            <Button onClick={() => abrirDialog()}>{proPendente ? "Pagar e ativar o PRO" : bloqueada ? "Regularizar pagamento" : "Reativar o PRO"}</Button>
           </CardContent>
         </Card>
       ) : (
