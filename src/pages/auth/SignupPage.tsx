@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { authApi } from "@/api/auth";
 import { ApiError } from "@/lib/api";
@@ -20,7 +20,8 @@ export function SignupPage() {
   const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
   const [loading, setLoading] = useState(false);
-  const [plano, setPlano] = useState<"free" | "pro">("free");
+  const search = useSearch({ from: "/cadastro" });
+  const [plano, setPlano] = useState<"free" | "pro">(search.plano ?? "free");
   const [form, setForm] = useState({
     razaoSocial: "",
     nomeFantasia: "",

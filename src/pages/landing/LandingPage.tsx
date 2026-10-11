@@ -123,7 +123,7 @@ export function LandingPage() {
                 ))}
               </ul>
               <Button asChild size="lg" variant="secondary" className="mt-8 w-full">
-                <Link to="/cadastro">Criar conta grátis</Link>
+                <Link to="/cadastro" search={{ plano: "free" }}>Criar conta grátis</Link>
               </Button>
               <p className="mt-3 text-center text-xs text-[#9aa0b0]">Sem cartão de crédito. 1 usuário, 1 projeto.</p>
             </div>
@@ -143,7 +143,7 @@ export function LandingPage() {
                 ))}
               </ul>
               <Button asChild size="lg" className="mt-8 w-full">
-                <Link to="/cadastro">Assinar Pro</Link>
+                <Link to="/cadastro" search={{ plano: "pro" }}>Assinar Pro</Link>
               </Button>
               <p className="mt-3 text-center text-xs text-[#9aa0b0]">Cartão ou PIX. Cancele quando quiser.</p>
             </div>
