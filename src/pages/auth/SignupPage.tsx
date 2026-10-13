@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { isCpfValido, mascararCpf } from "@/lib/cpf";
 import logo from "@/assets/orbita-lockup-branco.svg";
 
 const PLANOS = [
@@ -39,6 +40,10 @@ export function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isCpfValido(form.cpf)) {
+      toast.error("CPF inválido. Confira os números digitados.");
+      return;
+    }
     setLoading(true);
     try {
       const result = await authApi.signup({
@@ -132,7 +137,14 @@ export function SignupPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" required value={form.cpf} onChange={(e) => set("cpf", e.target.value)} />
+                <Input
+                  id="cpf"
+                  required
+                  inputMode="numeric"
+                  placeholder="000.000.000-00"
+                  value={form.cpf}
+                  onChange={(e) => set("cpf", mascararCpf(e.target.value))}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="email">E-mail</Label>

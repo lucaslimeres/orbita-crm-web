@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { isCpfValido, mascararCpf } from "@/lib/cpf";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const emptyForm: CreateUsuarioRequest = { roleId: 0, nome: "", cpf: "", email: "" };
@@ -47,6 +48,7 @@ export function UsuariosPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.roleId) return toast.error("Selecione um perfil.");
+    if (!isCpfValido(form.cpf)) return toast.error("CPF inválido. Confira os números digitados.");
     createMutation.mutate(form);
   }
 
@@ -91,7 +93,13 @@ export function UsuariosPage() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>CPF</Label>
-                  <Input required value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
+                  <Input
+                    required
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={form.cpf}
+                    onChange={(e) => setForm((f) => ({ ...f, cpf: mascararCpf(e.target.value) }))}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>E-mail</Label>
