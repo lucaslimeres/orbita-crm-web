@@ -33,5 +33,7 @@ export const authApi = {
   forgotPassword: (email: string) => api.post<{ message: string }>("/auth/forgot-password", { email }),
   resetPassword: (token: string, novaSenha: string) => api.post<{ message: string }>("/auth/reset-password", { token, novaSenha }),
   resendVerificationCode: () => api.post<{ message: string }>("/me/email-verification/resend"),
+  updateMe: (data: { nome: string; telefone: string | null }) => api.patch<{ usuario: AuthUsuario }>("/me", data),
+  changePassword: (senhaAtual: string, novaSenha: string) => api.post<{ message: string }>("/me/senha", { senhaAtual, novaSenha }),
   verifyEmailCode: (codigo: string) => api.post<{ message: string }>("/me/email-verification/confirm", { codigo }),
 };

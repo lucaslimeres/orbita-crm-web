@@ -36,6 +36,7 @@ interface AuthState {
   accessToken: string | null;
   setSession: (data: { usuario: AuthUsuario; empresa?: AuthEmpresa; assinatura?: AuthAssinatura; accessToken: string }) => void;
   setAssinatura: (assinatura: AuthAssinatura) => void;
+  setUsuario: (usuario: AuthUsuario) => void;
   logout: () => void;
 }
 
@@ -52,6 +53,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setAssinatura: (assinatura) => set({ assinatura }),
+
+      setUsuario: (usuario) => set({ usuario }),
 
       logout: () => {
         set({ usuario: null, empresa: null, assinatura: null, accessToken: null });
