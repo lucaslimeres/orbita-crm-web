@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { ArrowLeft, Check, X } from "lucide-react";
 import logo from "@/assets/orbita-lockup-branco.svg";
 
 const PLANOS = [
@@ -68,11 +68,32 @@ export function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0b1220] px-4 py-10">
       <div className="w-full max-w-md">
+        <Link
+          to="/"
+          hash="precos"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-[#9aa0b0] transition-colors hover:text-white"
+        >
+          <ArrowLeft className="size-4" />
+          Voltar para a página inicial
+        </Link>
+
         <img src={logo} alt="Órbita" className="mx-auto mb-8 h-7 w-auto" />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-lg border border-[#1e2740] bg-[#12192b] p-6">
           <div className="flex flex-col gap-3">
-            <p className="text-xs font-medium tracking-[0.12em] text-[#9aa0b0] uppercase">Escolha seu plano</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium tracking-[0.12em] text-[#9aa0b0] uppercase">Escolha seu plano</p>
+              {/* Fecha o cadastro e volta pra seção de preços da landing, onde ficam os recursos de cada plano. */}
+              <Link
+                to="/"
+                hash="precos"
+                aria-label="Fechar e voltar para a página inicial"
+                title="Fechar e voltar para a página inicial"
+                className="-m-1 rounded-md p-1 text-[#9aa0b0] transition-colors hover:bg-[#1e2740] hover:text-white"
+              >
+                <X className="size-4" />
+              </Link>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {PLANOS.map((p) => (
                 <button
