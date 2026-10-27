@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
-import { AlertTriangle, CreditCard, LayoutDashboard, LogOut, Moon, Sun, Users, Wallet } from "lucide-react";
+import { AlertTriangle, CreditCard, LayoutDashboard, LogOut, Moon, Sun, UserCog, Users, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { authApi } from "@/api/auth";
 import { Button } from "@/components/ui/button";
@@ -67,11 +67,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="flex flex-col gap-2 border-t border-border pt-4">
-          <div className="px-1">
+          <Link
+            to="/conta"
+            title="Minha conta"
+            className="rounded-md px-1 py-1 transition-colors hover:bg-background [&.active]:bg-accent"
+            activeProps={{ className: "active" }}
+          >
             <p className="truncate text-sm font-medium">{usuario?.nome}</p>
             <p className="truncate text-xs text-muted-foreground">{empresa?.nomeFantasia}</p>
-          </div>
+          </Link>
           <div className="flex gap-1">
+            <Button variant="ghost" size="icon" asChild title="Minha conta">
+              <Link to="/conta">
+                <UserCog className="size-4" />
+              </Link>
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Alternar tema">
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </Button>
