@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Check, X } from "lucide-react";
-import { Check } from "lucide-react";
 import { isCpfValido, mascararCpf } from "@/lib/cpf";
 import logo from "@/assets/orbita-lockup-branco.svg";
 
