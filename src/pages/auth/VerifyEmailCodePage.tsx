@@ -19,7 +19,10 @@ export function VerifyEmailCodePage() {
 
   // PRO escolhido no cadastro mas ainda não pago vai direto pra tela de assinatura;
   // o resto (Free, ou PRO já ativo) vai pro dashboard normalmente.
-  const destino = assinatura?.plano === "pro" && assinatura.status !== "ativa" ? "/assinatura" : "/financeiro";
+  const irParaDestino = () =>
+    assinatura?.plano === "pro" && assinatura.status !== "ativa"
+      ? navigate({ to: "/assinatura", search: { pagar: true } })
+      : navigate({ to: "/financeiro" });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,7 +30,7 @@ export function VerifyEmailCodePage() {
     try {
       await authApi.verifyEmailCode(codigo);
       toast.success("E-mail verificado com sucesso!");
-      navigate({ to: destino });
+      irParaDestino();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Código inválido.");
     } finally {
@@ -84,7 +87,7 @@ export function VerifyEmailCodePage() {
         </p>
 
         <p className="mt-2 text-center text-sm text-[#9aa0b0]">
-          <button type="button" onClick={() => navigate({ to: destino })} className="hover:underline">
+          <button type="button" onClick={irParaDestino} className="hover:underline">
             Verificar depois
           </button>
         </p>

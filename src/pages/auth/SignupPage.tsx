@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { authApi } from "@/api/auth";
 import { ApiError } from "@/lib/api";
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Check, X } from "lucide-react";
+import { Check } from "lucide-react";
+import { isCpfValido, mascararCpf } from "@/lib/cpf";
 import logo from "@/assets/orbita-lockup-branco.svg";
 
 const PLANOS = [
@@ -20,7 +22,8 @@ export function SignupPage() {
   const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
   const [loading, setLoading] = useState(false);
-  const [plano, setPlano] = useState<"free" | "pro">("free");
+  const search = useSearch({ from: "/cadastro" });
+  const [plano, setPlano] = useState<"free" | "pro">(search.plano ?? "free");
   const [form, setForm] = useState({
     razaoSocial: "",
     nomeFantasia: "",
@@ -38,6 +41,10 @@ export function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isCpfValido(form.cpf)) {
+      toast.error("CPF inválido. Confira os números digitados.");
+      return;
+    }
     setLoading(true);
     try {
       const result = await authApi.signup({
@@ -152,7 +159,14 @@ export function SignupPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" required value={form.cpf} onChange={(e) => set("cpf", e.target.value)} />
+                <Input
+                  id="cpf"
+                  required
+                  inputMode="numeric"
+                  placeholder="000.000.000-00"
+                  value={form.cpf}
+                  onChange={(e) => set("cpf", mascararCpf(e.target.value))}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="email">E-mail</Label>
