@@ -19,6 +19,8 @@ export interface AuthEmpresa {
   nomeFantasia: string;
   cnpj: string | null;
   email: string;
+  endereco?: string | null;
+  telefone?: string | null;
 }
 
 export interface AuthAssinatura {
