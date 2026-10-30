@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { authApi } from "@/api/auth";
 import { ApiError } from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +15,7 @@ export function VerifyEmailCodePage() {
   const navigate = useNavigate();
   const usuario = useAuthStore((s) => s.usuario);
   const assinatura = useAuthStore((s) => s.assinatura);
+  const logout = useAuthStore((s) => s.logout);
   const [codigo, setCodigo] = useState("");
   const [loading, setLoading] = useState(false);
   const [reenviando, setReenviando] = useState(false);
@@ -24,11 +27,22 @@ export function VerifyEmailCodePage() {
       ? navigate({ to: "/assinatura", search: { pagar: true } })
       : navigate({ to: "/financeiro" });
 
+  // Quem já confirmou o e-mail (ex.: voltou pra esta URL) segue direto.
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => authApi.me() });
+  const jaVerificado = !!me?.usuario.emailVerificadoEm;
+  useEffect(() => {
+    if (jaVerificado) irParaDestino();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage à verificação
+  }, [jaVerificado]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       await authApi.verifyEmailCode(codigo);
+      // Descarta (não só invalida) o `/me` em cache: invalidar mantém o dado antigo até o
+      // refetch, e o AppLayout veria "e-mail pendente" e mandaria de volta pra cá.
+      queryClient.removeQueries({ queryKey: ["me"] });
       toast.success("E-mail verificado com sucesso!");
       irParaDestino();
     } catch (error) {
@@ -36,6 +50,12 @@ export function VerifyEmailCodePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSair() {
+    logout();
+    queryClient.clear();
+    navigate({ to: "/login" });
   }
 
   async function handleReenviar() {
@@ -59,7 +79,7 @@ export function VerifyEmailCodePage() {
           <p className="text-sm text-[#9aa0b0]">
             Enviamos um código de verificação para{" "}
             {usuario ? <strong className="text-white">{usuario.email}</strong> : "o seu e-mail"}. Digite-o abaixo para confirmar
-            sua conta.
+            sua conta e liberar o acesso ao Órbita.
           </p>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="codigo">Código de verificação</Label>
@@ -86,9 +106,11 @@ export function VerifyEmailCodePage() {
           </button>
         </p>
 
+        {/* Sem "verificar depois": o sistema fica bloqueado até confirmar o e-mail. "Sair"
+            evita deixar quem não tem acesso ao e-mail preso nesta tela. */}
         <p className="mt-2 text-center text-sm text-[#9aa0b0]">
-          <button type="button" onClick={irParaDestino} className="hover:underline">
-            Verificar depois
+          <button type="button" onClick={handleSair} className="hover:underline">
+            Sair
           </button>
         </p>
       </div>
