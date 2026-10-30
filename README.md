@@ -32,9 +32,11 @@ permite `tsc -b` type-checar as rotas sem precisar rodar o Vite antes).
 
 ## Deploy
 
-Sem preferência de host definida ainda — o Palpite Arena web usa Vercel, que também
-serve bem aqui (build estático). Qualquer host de SPA funciona; só garantir rewrite de
-todas as rotas para `index.html` (TanStack Router faz roteamento client-side).
+Vercel (build estático). O `vercel.json` na raiz reescreve todas as rotas para
+`index.html` — o TanStack Router faz o roteamento no navegador, então sem esse rewrite
+recarregar qualquer página que não seja `/` (ex.: `/financeiro`) dá 404 da Vercel.
+Arquivos que existem de verdade (`/assets/*`, favicons) continuam sendo servidos direto,
+porque a Vercel confere o sistema de arquivos antes de aplicar o rewrite.
 
 ## Estrutura
 
