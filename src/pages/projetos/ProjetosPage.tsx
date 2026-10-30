@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { isCnpjValido, limparCnpj, mascararCnpj } from "@/lib/cnpj";
 import { Plus } from "lucide-react";
 
 const TIPOS: { value: ProjetoTipo; label: string }[] = [
@@ -70,6 +71,13 @@ export function ProjetosPage() {
     e.preventDefault();
     if (form.tipos.length === 0) return toast.error("Selecione ao menos um tipo de entrega.");
     if (!form.responsavelUsuarioId) return toast.error("Selecione um responsável.");
+    if (form.cnpj && !isCnpjValido(form.cnpj)) {
+      return toast.error(
+        limparCnpj(form.cnpj).length < 14
+          ? "CNPJ incompleto — são 14 caracteres (00.000.000/0000-00)."
+          : "CNPJ inválido. Confira os caracteres digitados.",
+      );
+    }
     createMutation.mutate({ ...form, cnpj: form.cnpj || null });
   }
 
@@ -120,7 +128,12 @@ export function ProjetosPage() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>CNPJ (opcional — projeto autoral não precisa)</Label>
-                  <Input value={form.cnpj ?? ""} onChange={(e) => setForm((f) => ({ ...f, cnpj: e.target.value }))} />
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    autoCapitalize="characters"
+                    value={form.cnpj ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, cnpj: mascararCnpj(e.target.value) }))}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>Data de início</Label>
