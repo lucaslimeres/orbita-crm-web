@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { authApi } from "@/api/auth";
 import { ApiError } from "@/lib/api";
@@ -8,10 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { mascararCpf } from "@/lib/cpf";
+import { isTelefoneValido, mascararTelefone, soDigitosTelefone } from "@/lib/telefone";
 
-function formatarCpf(cpf: string): string {
-  const d = cpf.replace(/\D/g, "");
-  return d.length === 11 ? d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") : cpf;
+function formatarCnpj(cnpj: string): string {
+  const d = cnpj.replace(/\D/g, "");
+  return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : cnpj;
+}
+
+/** Telefone gravado antes da validação pode ter texto livre — aí mostra como está. */
+function formatarTelefone(telefone: string | null | undefined): string {
+  if (!telefone) return "";
+  return /^\d{10,11}$/.test(telefone) ? mascararTelefone(telefone) : telefone;
 }
 
 const senhaVazia = { senhaAtual: "", novaSenha: "", confirmacao: "" };
@@ -19,11 +27,15 @@ const senhaVazia = { senhaAtual: "", novaSenha: "", confirmacao: "" };
 export function MinhaContaPage() {
   const usuario = useAuthStore((s) => s.usuario);
   const setUsuario = useAuthStore((s) => s.setUsuario);
-  const [dados, setDados] = useState({ nome: usuario?.nome ?? "", telefone: usuario?.telefone ?? "" });
+  const [dados, setDados] = useState({ nome: usuario?.nome ?? "", telefone: formatarTelefone(usuario?.telefone) });
+
+  // Mesma query do AppLayout — traz a empresa completa (a sessão salva no login nem sempre tem).
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => authApi.me(), staleTime: 30_000 });
+  const empresa = me?.empresa;
   const [senha, setSenha] = useState(senhaVazia);
 
   const dadosMutation = useMutation({
-    mutationFn: () => authApi.updateMe({ nome: dados.nome.trim(), telefone: dados.telefone.trim() || null }),
+    mutationFn: () => authApi.updateMe({ nome: dados.nome.trim(), telefone: soDigitosTelefone(dados.telefone) || null }),
     onSuccess: ({ usuario: atualizado }) => {
       setUsuario(atualizado);
       toast.success("Dados atualizados.");
@@ -42,10 +54,12 @@ export function MinhaContaPage() {
 
   if (!usuario) return null;
 
-  const dadosAlterados = dados.nome.trim() !== usuario.nome || (dados.telefone.trim() || null) !== usuario.telefone;
+  const dadosAlterados =
+    dados.nome.trim() !== usuario.nome || (soDigitosTelefone(dados.telefone) || null) !== (soDigitosTelefone(usuario.telefone ?? "") || null);
 
   function handleSalvarDados(e: React.FormEvent) {
     e.preventDefault();
+    if (!isTelefoneValido(dados.telefone)) return toast.error("Telefone inválido — informe DDD + número.");
     dadosMutation.mutate();
   }
 
@@ -81,16 +95,17 @@ export function MinhaContaPage() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" value={formatarCpf(usuario.cpf)} disabled />
+                <Input id="cpf" value={mascararCpf(usuario.cpf)} disabled />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="telefone">Telefone</Label>
                 <Input
                   id="telefone"
                   type="tel"
+                  inputMode="numeric"
                   placeholder="(00) 00000-0000"
                   value={dados.telefone}
-                  onChange={(e) => setDados((d) => ({ ...d, telefone: e.target.value }))}
+                  onChange={(e) => setDados((d) => ({ ...d, telefone: mascararTelefone(e.target.value) }))}
                 />
               </div>
             </div>
@@ -102,6 +117,25 @@ export function MinhaContaPage() {
           </form>
         </CardContent>
       </Card>
+
+      {empresa && (
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-5">
+            <div>
+              <CardTitle className="text-base">Empresa</CardTitle>
+              <CardDescription>Dados da empresa vinculada à sua conta.</CardDescription>
+            </div>
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
+              <CampoEmpresa label="Razão social" valor={empresa.razaoSocial} />
+              <CampoEmpresa label="Nome fantasia" valor={empresa.nomeFantasia} />
+              <CampoEmpresa label="CNPJ" valor={empresa.cnpj ? formatarCnpj(empresa.cnpj) : null} />
+              <CampoEmpresa label="E-mail" valor={empresa.email} />
+              <CampoEmpresa label="Telefone" valor={formatarTelefone(empresa.telefone) || null} />
+              <CampoEmpresa label="Endereço" valor={empresa.endereco} />
+            </dl>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="pt-5">
@@ -153,6 +187,15 @@ export function MinhaContaPage() {
           </form>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function CampoEmpresa({ label, valor }: { label: string; valor: string | null | undefined }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={valor ? "" : "text-muted-foreground"}>{valor || "Não informado"}</dd>
     </div>
   );
 }
