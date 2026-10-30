@@ -11,6 +11,8 @@ export interface AuthUsuario {
   telefone: string | null;
   ativo: boolean;
   confirmado: boolean;
+  /** Nulo enquanto o e-mail não foi confirmado com o código — o sistema fica bloqueado. */
+  emailVerificadoEm?: string | null;
 }
 
 export interface AuthEmpresa {
