@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CreditCard, QrCode } from "lucide-react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { assinaturaApi } from "@/api/assinatura";
 import { tokenizeCard } from "@/lib/pagarme";
@@ -227,6 +228,14 @@ export function AssinaturaPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-4 pt-5 text-center">
             <CardDescription>PIX gerado — pague para ativar a assinatura</CardDescription>
+            {/* QR gerado no navegador a partir do próprio copia-e-cola (payload EMV do PIX) —
+                não depende de imagem hospedada pelo Pagar.me. */}
+            {faturaPixPendente.pixCopiaCola && (
+              <div className="rounded-md bg-white p-3">
+                <QRCodeSVG value={faturaPixPendente.pixCopiaCola} size={192} level="M" aria-label="QR code do PIX" />
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Escaneie o QR code no app do seu banco ou use o código copia-e-cola abaixo.</p>
             <div className="max-w-full break-all rounded-md border border-border bg-background px-4 py-3 font-numeric text-xs">{faturaPixPendente.pixCopiaCola}</div>
             <p className="text-xs text-muted-foreground">Assim que o pagamento cair, esta tela atualiza sozinha.</p>
             <div className="flex gap-2">
