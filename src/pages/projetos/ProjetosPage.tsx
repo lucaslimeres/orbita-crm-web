@@ -36,14 +36,15 @@ export function ProjetosPage() {
   const queryClient = useQueryClient();
   const usuario = useAuthStore((s) => s.usuario);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Omit<CreateProjetoRequest, "tipos" | "responsavelUsuarioId"> & { tipos: ProjetoTipo[]; responsavelUsuarioId: string }>({
+  const formVazio = () => ({
     nome: "",
     descricao: "",
     cnpj: "",
     dataInicio: new Date().toISOString().slice(0, 10),
-    tipos: [],
+    tipos: [] as ProjetoTipo[],
     responsavelUsuarioId: usuario?.id ?? "",
   });
+  const [form, setForm] = useState<Omit<CreateProjetoRequest, "tipos" | "responsavelUsuarioId"> & { tipos: ProjetoTipo[]; responsavelUsuarioId: string }>(formVazio);
 
   const { data: projetos = [], isLoading } = useQuery({ queryKey: ["projetos"], queryFn: () => projetosApi.list() });
   const { data: usuarios = [] } = useQuery({ queryKey: ["usuarios"], queryFn: () => usuariosApi.list() });
@@ -56,10 +57,18 @@ export function ProjetosPage() {
     mutationFn: (data: CreateProjetoRequest) => projetosApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      // O contador "Plano Free · x/1" e o bloqueio vêm de GET /assinatura — sem isso, a tela
+      // só via o limite atingido depois de recarregar ou trocar de aba.
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
       setShowForm(false);
+      setForm(formVazio());
       toast.success("Projeto criado.");
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível criar o projeto."),
+    onError: (error) => {
+      // Recusa por limite (ex.: criado em outra aba) — atualiza o contador para a tela bloquear.
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
+      toast.error(error instanceof ApiError ? error.message : "Não foi possível criar o projeto.");
+    },
   });
 
   function toggleTipo(tipo: ProjetoTipo) {
