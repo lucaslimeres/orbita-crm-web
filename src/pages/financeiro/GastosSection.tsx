@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { financeiroApi, type CreateGastoRequest, type Gasto, type Recorrencia } from "@/api/financeiro";
 import { projetosApi } from "@/api/projetos";
 import { ApiError } from "@/lib/api";
-import { formatDateOnly, formatMoney, hojeIso } from "@/lib/format";
+import { formatDateOnly, formatMoney, hojeIso, reaisParaCentavos } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,9 +56,7 @@ function formDoGasto(gasto: Gasto): GastoFormState {
 
 /** `null` (com aviso) se o valor não for um número positivo. */
 function paraRequest(form: GastoFormState): CreateGastoRequest | null {
-  // "1.234,56" (vírgula decimal, ponto de milhar) ou "1234.56"/"100.5" (ponto decimal).
-  const texto = form.valorReais.includes(",") ? form.valorReais.replace(/\./g, "").replace(",", ".") : form.valorReais;
-  const valorCentavos = Math.round(Number(texto) * 100);
+  const valorCentavos = reaisParaCentavos(form.valorReais);
   if (!valorCentavos || valorCentavos < 0) {
     toast.error("Informe o valor do gasto.");
     return null;
