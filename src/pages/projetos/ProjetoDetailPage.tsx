@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { GastosSection } from "@/pages/financeiro/GastosSection";
 import { projetosApi, type CreateReceitaRequest } from "@/api/projetos";
-import { financeiroApi } from "@/api/financeiro";
 import { ApiError } from "@/lib/api";
 import { formatDateOnly, formatMoney, hojeIso } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
@@ -33,7 +33,6 @@ export function ProjetoDetailPage() {
   const { data: projeto } = useQuery({ queryKey: ["projetos", id], queryFn: () => projetosApi.get(id) });
   const { data: dashboard } = useQuery({ queryKey: ["projetos", id, "dashboard"], queryFn: () => projetosApi.dashboard(id) });
   const { data: receitas = [] } = useQuery({ queryKey: ["projetos", id, "receitas"], queryFn: () => projetosApi.listReceitas(id) });
-  const { data: gastos = [] } = useQuery({ queryKey: ["financeiro", "gastos", id], queryFn: () => financeiroApi.listGastos(id) });
 
   const createReceitaMutation = useMutation({
     mutationFn: (data: CreateReceitaRequest) => projetosApi.createReceita(id, data),
@@ -163,35 +162,7 @@ export function ProjetoDetailPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium tracking-[0.02em] text-muted-foreground uppercase">Gastos do projeto</h2>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {gastos.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    Nenhum gasto vinculado a este projeto.
-                  </TableCell>
-                </TableRow>
-              )}
-              {gastos.map((gasto) => (
-                <TableRow key={gasto.id}>
-                  <TableCell>{gasto.categoria}</TableCell>
-                  <TableCell className="text-muted-foreground">{gasto.descricao ?? "—"}</TableCell>
-                  <TableCell className="font-numeric">{formatDateOnly(gasto.dataInicio)}</TableCell>
-                  <TableCell className="text-right font-numeric text-negative">{formatMoney(gasto.valorCentavos)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <GastosSection projetoId={id} />
       </section>
     </div>
   );
