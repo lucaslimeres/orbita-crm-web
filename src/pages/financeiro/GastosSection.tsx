@@ -54,6 +54,13 @@ function formDoGasto(gasto: Gasto): GastoFormState {
   };
 }
 
+/** Nas rotas de gasto do projeto o projeto vem da URL — o corpo não leva `projetoId`. */
+function semProjeto<T extends { projetoId?: number | null }>(data: T): Omit<T, "projetoId"> {
+  const resto = { ...data };
+  delete resto.projetoId;
+  return resto;
+}
+
 /** `null` (com aviso) se o valor não for um número positivo. */
 function paraRequest(form: GastoFormState): CreateGastoRequest | null {
   const valorCentavos = reaisParaCentavos(form.valorReais);
@@ -73,18 +80,35 @@ function paraRequest(form: GastoFormState): CreateGastoRequest | null {
   };
 }
 
-export function GastosSection() {
+/**
+ * Lista + cadastro/edição de gastos. Sem `projetoId`: gastos da empresa (Financeiro), com
+ * campo para vincular a um projeto. Com `projetoId`: só os gastos daquele projeto (painel
+ * do projeto), usando as rotas `/projetos/:id/gastos` — o projeto fica fixo.
+ */
+export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
   const queryClient = useQueryClient();
+  const doProjeto = projetoId !== undefined;
+  const api = doProjeto
+    ? {
+        list: () => projetosApi.listGastos(projetoId),
+        create: (data: CreateGastoRequest) => projetosApi.createGasto(projetoId, semProjeto(data)),
+        update: (id: number, data: Partial<CreateGastoRequest>) => projetosApi.updateGasto(projetoId, id, semProjeto(data)),
+        remove: (id: number) => projetosApi.deleteGasto(projetoId, id),
+      }
+    : { list: () => financeiroApi.listGastos(), create: financeiroApi.createGasto, update: financeiroApi.updateGasto, remove: financeiroApi.deleteGasto };
   const [form, setForm] = useState<GastoFormState>(formVazio);
   const [editando, setEditando] = useState<{ id: number; form: GastoFormState } | null>(null);
 
-  const { data: gastos = [], isLoading } = useQuery({ queryKey: ["financeiro", "gastos"], queryFn: () => financeiroApi.listGastos() });
+  const { data: gastos = [], isLoading } = useQuery({
+    queryKey: doProjeto ? ["projetos", projetoId, "gastos"] : ["financeiro", "gastos"],
+    queryFn: api.list,
+  });
   // Sem permissão de ver projetos, a lista vem vazia e o gasto fica "Geral da empresa".
-  const { data: projetos = [] } = useQuery({ queryKey: ["projetos"], queryFn: () => projetosApi.list(), retry: false });
+  const { data: projetos = [] } = useQuery({ queryKey: ["projetos"], queryFn: () => projetosApi.list(), retry: false, enabled: !doProjeto });
   const nomeProjeto = (id: number | null) => (id ? (projetos.find((p) => p.id === id)?.nome ?? `Projeto #${id}`) : null);
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateGastoRequest) => financeiroApi.createGasto(data),
+    mutationFn: (data: CreateGastoRequest) => api.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
@@ -95,7 +119,7 @@ export function GastosSection() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CreateGastoRequest }) => financeiroApi.updateGasto(id, data),
+    mutationFn: ({ id, data }: { id: number; data: CreateGastoRequest }) => api.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
@@ -106,7 +130,7 @@ export function GastosSection() {
   });
 
   const marcarPagoMutation = useMutation({
-    mutationFn: (id: number) => financeiroApi.updateGasto(id, { status: "pago" }),
+    mutationFn: (id: number) => api.update(id, { status: "pago" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
@@ -116,7 +140,7 @@ export function GastosSection() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => financeiroApi.deleteGasto(id),
+    mutationFn: (id: number) => api.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
@@ -142,7 +166,7 @@ export function GastosSection() {
       <Card>
         <CardContent className="pt-5">
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <CamposGasto idPrefixo="novo" form={form} setForm={setForm} projetos={projetos} />
+            <CamposGasto idPrefixo="novo" form={form} setForm={setForm} projetos={projetos} mostrarProjeto={!doProjeto} />
             <div className="flex items-end">
               <Button type="submit" disabled={createMutation.isPending} className="w-full">
                 Adicionar gasto
@@ -186,7 +210,7 @@ export function GastosSection() {
                 <TableCell>{gasto.categoria}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {gasto.descricao ?? "—"}
-                  {gasto.projetoId && <span className="block text-xs">Projeto: {nomeProjeto(gasto.projetoId)}</span>}
+                  {!doProjeto && gasto.projetoId && <span className="block text-xs">Projeto: {nomeProjeto(gasto.projetoId)}</span>}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{RECORRENCIAS.find((r) => r.value === gasto.recorrencia)?.label}</Badge>
@@ -251,6 +275,7 @@ export function GastosSection() {
                 form={editando.form}
                 setForm={(fn) => setEditando((e) => (e ? { ...e, form: typeof fn === "function" ? fn(e.form) : fn } : e))}
                 projetos={projetos}
+                mostrarProjeto={!doProjeto}
                 compacto
               />
               <div className="col-span-2 flex justify-end gap-2">
@@ -274,12 +299,14 @@ function CamposGasto({
   form,
   setForm,
   projetos,
+  mostrarProjeto,
   compacto = false,
 }: {
   idPrefixo: string;
   form: GastoFormState;
   setForm: React.Dispatch<React.SetStateAction<GastoFormState>>;
   projetos: { id: number; nome: string }[];
+  mostrarProjeto: boolean;
   compacto?: boolean;
 }) {
   const id = (campo: string) => `${idPrefixo}-${campo}`;
@@ -326,22 +353,24 @@ function CamposGasto({
           <option value="pendente">Pendente</option>
         </Select>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={id("projeto")}>Projeto</Label>
-        <Select
-          id={id("projeto")}
-          value={form.projetoId ?? ""}
-          onChange={(e) => setForm((f) => ({ ...f, projetoId: e.target.value ? Number(e.target.value) : null }))}
-        >
-          <option value="">Geral da empresa</option>
-          {projetos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nome}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div className={compacto ? "col-span-2 flex flex-col gap-1.5" : "col-span-2 flex flex-col gap-1.5 md:col-span-1"}>
+      {mostrarProjeto && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={id("projeto")}>Projeto</Label>
+          <Select
+            id={id("projeto")}
+            value={form.projetoId ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, projetoId: e.target.value ? Number(e.target.value) : null }))}
+          >
+            <option value="">Geral da empresa</option>
+            {projetos.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
+      <div className={compacto ? "col-span-2 flex flex-col gap-1.5" : mostrarProjeto ? "col-span-2 flex flex-col gap-1.5 md:col-span-1" : "col-span-2 flex flex-col gap-1.5"}>
         <Label htmlFor={id("descricao")}>Descrição / fornecedor</Label>
         <Input
           id={id("descricao")}
