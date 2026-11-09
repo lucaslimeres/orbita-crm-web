@@ -151,4 +151,6 @@ export const adminPanelApi = {
   updateAdmin: (id: string, data: UpdateAdminAccountInput) => adminApi.patch<AdminAccount>(`/admin/administradores/${id}`, data),
   deleteAdmin: (id: string) => adminApi.delete<void>(`/admin/administradores/${id}`),
   confirmarConvite: (data: ConfirmarConviteAdminInput) => adminApi.post<{ message: string }>("/admin/confirmar-convite", data),
+  esqueciSenha: (email: string) => adminApi.post<{ message: string }>("/admin/esqueci-senha", { email }),
+  redefinirSenha: (token: string, novaSenha: string) => adminApi.post<{ message: string }>("/admin/redefinir-senha", { token, novaSenha }),
 };

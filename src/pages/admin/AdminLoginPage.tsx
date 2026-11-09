@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { adminPanelApi } from "@/api/admin";
@@ -45,7 +45,12 @@ export function AdminLoginPage() {
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="senha">Senha</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="senha">Senha</Label>
+              <Link to="/admin/esqueci-senha" className="text-xs text-[#8b77ff] hover:underline">
+                Esqueci minha senha
+              </Link>
+            </div>
             <Input id="senha" type="password" required value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" />
           </div>
           <Button type="submit" disabled={loading} className="mt-2">

@@ -23,7 +23,9 @@ import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authentic
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
 import { Route as AdminConviteRouteImport } from './routes/admin/convite'
+import { Route as AdminEsqueciSenhaRouteImport } from './routes/admin/esqueci-senha'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminRedefinirSenhaRouteImport } from './routes/admin/redefinir-senha'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos/index'
 import { Route as AuthenticatedProjetosProjetoIdRouteImport } from './routes/_authenticated/projetos/$projetoId'
 import { Route as AdminAuthenticatedIndexRouteImport } from './routes/admin/_authenticated/index'
@@ -101,9 +103,19 @@ const AdminConviteRoute = AdminConviteRouteImport.update({
   path: '/admin/convite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEsqueciSenhaRoute = AdminEsqueciSenhaRouteImport.update({
+  id: '/admin/esqueci-senha',
+  path: '/admin/esqueci-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRedefinirSenhaRoute = AdminRedefinirSenhaRouteImport.update({
+  id: '/admin/redefinir-senha',
+  path: '/admin/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProjetosIndexRoute =
@@ -162,7 +174,9 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin': typeof AdminAuthenticatedRouteWithChildren
   '/admin/convite': typeof AdminConviteRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
   '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
@@ -184,7 +198,9 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/convite': typeof AdminConviteRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
   '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
@@ -209,7 +225,9 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/convite': typeof AdminConviteRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/_authenticated/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/_authenticated/administradores': typeof AdminAuthenticatedAdministradoresRoute
   '/admin/_authenticated/financeiro': typeof AdminAuthenticatedFinanceiroRoute
@@ -234,7 +252,9 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/admin'
     | '/admin/convite'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/redefinir-senha'
     | '/projetos/$projetoId'
     | '/admin/administradores'
     | '/admin/financeiro'
@@ -256,7 +276,9 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/usuarios'
     | '/admin/convite'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/redefinir-senha'
     | '/projetos/$projetoId'
     | '/admin/administradores'
     | '/admin/financeiro'
@@ -280,7 +302,9 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/admin/_authenticated'
     | '/admin/convite'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/redefinir-senha'
     | '/_authenticated/projetos/$projetoId'
     | '/admin/_authenticated/administradores'
     | '/admin/_authenticated/financeiro'
@@ -301,7 +325,9 @@ export interface RootRouteChildren {
   VerificarEmailRoute: typeof VerificarEmailRoute
   AdminAuthenticatedRoute: typeof AdminAuthenticatedRouteWithChildren
   AdminConviteRoute: typeof AdminConviteRoute
+  AdminEsqueciSenhaRoute: typeof AdminEsqueciSenhaRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminRedefinirSenhaRoute: typeof AdminRedefinirSenhaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -404,11 +430,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/esqueci-senha': {
+      id: '/admin/esqueci-senha'
+      path: '/admin/esqueci-senha'
+      fullPath: '/admin/esqueci-senha'
+      preLoaderRoute: typeof AdminEsqueciSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/redefinir-senha': {
+      id: '/admin/redefinir-senha'
+      path: '/admin/redefinir-senha'
+      fullPath: '/admin/redefinir-senha'
+      preLoaderRoute: typeof AdminRedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/projetos/': {
@@ -517,7 +557,9 @@ const rootRouteChildren: RootRouteChildren = {
   VerificarEmailRoute: VerificarEmailRoute,
   AdminAuthenticatedRoute: AdminAuthenticatedRouteWithChildren,
   AdminConviteRoute: AdminConviteRoute,
+  AdminEsqueciSenhaRoute: AdminEsqueciSenhaRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminRedefinirSenhaRoute: AdminRedefinirSenhaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
