@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { financeiroApi, type CreateRetiradaRequest } from "@/api/financeiro";
 import { ApiError } from "@/lib/api";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney, hojeIso } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ const emptyForm: RetiradaFormState = {
   subtipo: "pro_labore",
   destinatarioNome: "",
   descricao: "",
-  data: new Date().toISOString().slice(0, 10),
+  data: hojeIso(),
   valorReais: "",
 };
 
@@ -142,7 +142,7 @@ export function RetiradasSection() {
                   <Badge variant="outline">{SUBTIPOS.find((s) => s.value === retirada.subtipo)?.label}</Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{retirada.destinatarioNome ?? "—"}</TableCell>
-                <TableCell className="font-numeric">{formatDate(retirada.data)}</TableCell>
+                <TableCell className="font-numeric">{formatDateOnly(retirada.data)}</TableCell>
                 <TableCell className="text-right font-numeric text-negative">{formatMoney(retirada.valorCentavos)}</TableCell>
                 <TableCell>
                   <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(retirada.id)}>

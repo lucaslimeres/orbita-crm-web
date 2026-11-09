@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { financeiroApi, type CreateAporteRequest } from "@/api/financeiro";
 import { ApiError } from "@/lib/api";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney, hojeIso } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ interface AporteFormState {
   valorReais: string;
 }
 
-const emptyForm: AporteFormState = { origem: "socio", descricao: "", data: new Date().toISOString().slice(0, 10), valorReais: "" };
+const emptyForm: AporteFormState = { origem: "socio", descricao: "", data: hojeIso(), valorReais: "" };
 
 export function AportesSection() {
   const queryClient = useQueryClient();
@@ -121,7 +121,7 @@ export function AportesSection() {
               <TableRow key={aporte.id}>
                 <TableCell>{ORIGENS.find((o) => o.value === aporte.origem)?.label}</TableCell>
                 <TableCell className="text-muted-foreground">{aporte.descricao ?? "—"}</TableCell>
-                <TableCell className="font-numeric">{formatDate(aporte.data)}</TableCell>
+                <TableCell className="font-numeric">{formatDateOnly(aporte.data)}</TableCell>
                 <TableCell className="text-right font-numeric text-positive">{formatMoney(aporte.valorCentavos)}</TableCell>
                 <TableCell>
                   <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(aporte.id)}>
