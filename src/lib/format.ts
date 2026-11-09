@@ -45,3 +45,11 @@ export function formatDuracaoCupom(usos: number | null, palavra: "próximas" | "
   if (usos === 1) return palavra === "primeiras" ? "na primeira mensalidade" : "na próxima mensalidade";
   return `nas ${palavra} ${usos} mensalidades`;
 }
+
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** "2026-11" (AAAA-MM) → "nov/26" — eixo e tabelas dos gráficos do Dashboard. */
+export function rotuloMes(mes: string): string {
+  const [ano, m] = mes.split("-");
+  return `${MESES_CURTOS[Number(m) - 1]}/${ano.slice(2)}`;
+}

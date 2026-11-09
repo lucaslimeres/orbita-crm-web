@@ -4,7 +4,7 @@ import { LandingPage } from "@/pages/landing/LandingPage";
 
 export const Route = createFileRoute("/")({
   beforeLoad: () => {
-    if (getStoredAccessToken()) throw redirect({ to: "/financeiro" });
+    if (getStoredAccessToken()) throw redirect({ to: "/dashboard" });
   },
   component: LandingPage,
 });
