@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 
 const RECORRENCIAS: { value: Recorrencia; label: string }[] = [
   { value: "unico", label: "Único" },
@@ -105,6 +105,16 @@ export function GastosSection() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível atualizar o gasto."),
   });
 
+  const marcarPagoMutation = useMutation({
+    mutationFn: (id: number) => financeiroApi.updateGasto(id, { status: "pago" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      toast.success("Gasto marcado como pago.");
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível marcar o gasto como pago."),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => financeiroApi.deleteGasto(id),
     onSuccess: () => {
@@ -190,7 +200,18 @@ export function GastosSection() {
                 </TableCell>
                 <TableCell className="text-right font-numeric text-negative">{formatMoney(gasto.valorCentavos)}</TableCell>
                 <TableCell>
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-end gap-1">
+                    {gasto.status === "pendente" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={marcarPagoMutation.isPending && marcarPagoMutation.variables === gasto.id}
+                        onClick={() => marcarPagoMutation.mutate(gasto.id)}
+                      >
+                        <CheckCircle2 className="size-4" />
+                        Marcar como pago
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditando({ id: gasto.id, form: formDoGasto(gasto) })}>
                       <Pencil className="size-4" />
                     </Button>
@@ -214,7 +235,7 @@ export function GastosSection() {
 
       <p className="text-xs text-muted-foreground">
         <strong>Pago</strong>: o dinheiro já saiu — entra no saldo em caixa. <strong>Pendente</strong>: ainda vai ser pago — não desconta do
-        saldo até ser marcado como pago (em "Editar").
+        saldo até ser marcado como pago ("Marcar como pago", ou em "Editar" para voltar a pendente).
       </p>
 
       <Dialog open={!!editando} onOpenChange={(open) => !open && setEditando(null)}>
