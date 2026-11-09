@@ -172,4 +172,6 @@ export const adminPanelApi = {
   createCupom: (data: CupomAdminInput) => adminApi.post<CupomAdmin>("/admin/cupons", data),
   updateCupom: (id: number, data: Partial<CupomAdminInput>) => adminApi.patch<CupomAdmin>(`/admin/cupons/${id}`, data),
   confirmarConvite: (data: ConfirmarConviteAdminInput) => adminApi.post<{ message: string }>("/admin/confirmar-convite", data),
+  esqueciSenha: (email: string) => adminApi.post<{ message: string }>("/admin/esqueci-senha", { email }),
+  redefinirSenha: (token: string, novaSenha: string) => adminApi.post<{ message: string }>("/admin/redefinir-senha", { token, novaSenha }),
 };
