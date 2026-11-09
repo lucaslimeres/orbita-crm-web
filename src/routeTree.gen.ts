@@ -28,6 +28,7 @@ import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedProjetosProjetoIdRouteImport } from './routes/_authenticated/projetos/$projetoId'
 import { Route as AdminAuthenticatedIndexRouteImport } from './routes/admin/_authenticated/index'
 import { Route as AdminAuthenticatedAdministradoresRouteImport } from './routes/admin/_authenticated/administradores'
+import { Route as AdminAuthenticatedCuponsRouteImport } from './routes/admin/_authenticated/cupons'
 import { Route as AdminAuthenticatedFinanceiroRouteImport } from './routes/admin/_authenticated/financeiro'
 import { Route as AdminAuthenticatedContasIndexRouteImport } from './routes/admin/_authenticated/contas/index'
 import { Route as AdminAuthenticatedContasEmpresaIdRouteImport } from './routes/admin/_authenticated/contas/$empresaId'
@@ -129,6 +130,12 @@ const AdminAuthenticatedAdministradoresRoute =
     path: '/administradores',
     getParentRoute: () => AdminAuthenticatedRoute,
   } as any)
+const AdminAuthenticatedCuponsRoute =
+  AdminAuthenticatedCuponsRouteImport.update({
+    id: '/cupons',
+    path: '/cupons',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
 const AdminAuthenticatedFinanceiroRoute =
   AdminAuthenticatedFinanceiroRouteImport.update({
     id: '/financeiro',
@@ -165,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/cupons': typeof AdminAuthenticatedCuponsRoute
   '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/admin/': typeof AdminAuthenticatedIndexRoute
@@ -187,6 +195,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/cupons': typeof AdminAuthenticatedCuponsRoute
   '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
   '/admin': typeof AdminAuthenticatedIndexRoute
@@ -212,6 +221,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/_authenticated/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/_authenticated/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/_authenticated/cupons': typeof AdminAuthenticatedCuponsRoute
   '/admin/_authenticated/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/admin/_authenticated/': typeof AdminAuthenticatedIndexRoute
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/projetos/$projetoId'
     | '/admin/administradores'
+    | '/admin/cupons'
     | '/admin/financeiro'
     | '/projetos/'
     | '/admin/'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/projetos/$projetoId'
     | '/admin/administradores'
+    | '/admin/cupons'
     | '/admin/financeiro'
     | '/projetos'
     | '/admin'
@@ -283,6 +295,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/_authenticated/projetos/$projetoId'
     | '/admin/_authenticated/administradores'
+    | '/admin/_authenticated/cupons'
     | '/admin/_authenticated/financeiro'
     | '/_authenticated/projetos/'
     | '/admin/_authenticated/'
@@ -439,6 +452,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthenticatedAdministradoresRouteImport
       parentRoute: typeof AdminAuthenticatedRoute
     }
+    '/admin/_authenticated/cupons': {
+      id: '/admin/_authenticated/cupons'
+      path: '/cupons'
+      fullPath: '/admin/cupons'
+      preLoaderRoute: typeof AdminAuthenticatedCuponsRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
     '/admin/_authenticated/financeiro': {
       id: '/admin/_authenticated/financeiro'
       path: '/financeiro'
@@ -487,6 +507,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 interface AdminAuthenticatedRouteChildren {
   AdminAuthenticatedAdministradoresRoute: typeof AdminAuthenticatedAdministradoresRoute
+  AdminAuthenticatedCuponsRoute: typeof AdminAuthenticatedCuponsRoute
   AdminAuthenticatedFinanceiroRoute: typeof AdminAuthenticatedFinanceiroRoute
   AdminAuthenticatedIndexRoute: typeof AdminAuthenticatedIndexRoute
   AdminAuthenticatedContasEmpresaIdRoute: typeof AdminAuthenticatedContasEmpresaIdRoute
@@ -496,6 +517,7 @@ interface AdminAuthenticatedRouteChildren {
 const AdminAuthenticatedRouteChildren: AdminAuthenticatedRouteChildren = {
   AdminAuthenticatedAdministradoresRoute:
     AdminAuthenticatedAdministradoresRoute,
+  AdminAuthenticatedCuponsRoute: AdminAuthenticatedCuponsRoute,
   AdminAuthenticatedFinanceiroRoute: AdminAuthenticatedFinanceiroRoute,
   AdminAuthenticatedIndexRoute: AdminAuthenticatedIndexRoute,
   AdminAuthenticatedContasEmpresaIdRoute:

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CreditCard, QrCode } from "lucide-react";
+import { AlertTriangle, CreditCard, QrCode, TicketPercent } from "lucide-react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { assinaturaApi } from "@/api/assinatura";
+import { assinaturaApi, type CupomPreview } from "@/api/assinatura";
 import { tokenizeCard } from "@/lib/pagarme";
 import { limparNomeCartao, mascararNumeroCartao, soDigitos, validarCartao } from "@/lib/cartao";
 import { useAssinaturaSocket } from "@/lib/ws";
 import { ApiError } from "@/lib/api";
-import { formatDateOnly, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatDescontoCupom, formatDuracaoCupom, formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,10 +81,27 @@ export function AssinaturaPage() {
     !!faturaPixPendente,
   );
 
+  // Cupom digitado no modal (prévia já validada pela API) e, para o cupom já em uso, se o
+  // cliente quer usá-lo nesta cobrança PIX (só desconta se marcar — ver docs/assinatura.md).
+  const [cupomCodigo, setCupomCodigo] = useState("");
+  const [cupomAplicado, setCupomAplicado] = useState<CupomPreview | null>(null);
+  const [usarCupom, setUsarCupom] = useState(false);
+
   function fecharDialog(open: boolean) {
     setDialogOpen(open);
-    if (!open) setMetodo(null);
+    if (!open) {
+      setMetodo(null);
+      setCupomCodigo("");
+      setCupomAplicado(null);
+      setUsarCupom(false);
+    }
   }
+
+  const validarCupomMutation = useMutation({
+    mutationFn: () => assinaturaApi.validarCupom(cupomCodigo.trim()),
+    onSuccess: (preview) => setCupomAplicado(preview),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível validar o cupom."),
+  });
 
   function abrirDialog(presetMetodo: "cartao" | null = null) {
     setMetodo(presetMetodo);
@@ -94,7 +111,7 @@ export function AssinaturaPage() {
   const checkoutCartaoMutation = useMutation({
     mutationFn: async () => {
       const cardToken = await tokenizeCard(cardForm);
-      return assinaturaApi.checkoutCartao(cardToken);
+      return assinaturaApi.checkoutCartao(cardToken, cupomAplicado?.codigo);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assinatura"] });
@@ -106,7 +123,7 @@ export function AssinaturaPage() {
   });
 
   const gerarPixMutation = useMutation({
-    mutationFn: () => assinaturaApi.gerarPix(),
+    mutationFn: () => assinaturaApi.gerarPix({ cupom: cupomAplicado?.codigo, usarCupom }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assinatura"] });
       fecharDialog(false);
@@ -125,7 +142,7 @@ export function AssinaturaPage() {
 
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">Carregando...</p>;
 
-  const { assinatura, faturas, planoEfetivo, bloqueada, limites } = data;
+  const { assinatura, faturas, planoEfetivo, bloqueada, limites, cupom } = data;
   // Free, sem_assinatura, atrasada ou cancelada — qualquer coisa que não seja PRO pago e em dia precisa de ação aqui.
   const precisaPagar = planoEfetivo !== "pro";
   // Plano cru "pro" mas não pago/em dia (sem_assinatura, atrasada, cancelada) — o card de
@@ -206,6 +223,13 @@ export function AssinaturaPage() {
             {planoEfetivo === "pro" && assinatura.proximaCobranca && (
               <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDateOnly(assinatura.proximaCobranca)}</span>
             )}
+            {cupom && (
+              <span className="flex items-center gap-1.5 text-xs text-positive">
+                <TicketPercent className="size-3.5" />
+                Cupom {cupom.codigo}: {formatDescontoCupom(cupom)} de desconto{" "}
+                {cupom.usosRestantes === null ? "em todas as mensalidades" : `· ${cupom.usosRestantes} uso${cupom.usosRestantes > 1 ? "s" : ""} restante${cupom.usosRestantes > 1 ? "s" : ""}`}
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -285,6 +309,67 @@ export function AssinaturaPage() {
             <DialogTitle>{metodo === "cartao" ? (assinatura.cartaoFinal ? "Trocar cartão" : "Cadastrar cartão") : "Forma de pagamento"}</DialogTitle>
             {metodo === null && <DialogDescription>Como você quer pagar a mensalidade do plano PRO?</DialogDescription>}
           </DialogHeader>
+
+          {cupom ? (
+            <div className="flex flex-col gap-2 rounded-md border border-positive/30 bg-positive/10 p-3 text-sm">
+              <p className="flex items-center gap-1.5 font-medium text-positive">
+                <TicketPercent className="size-4" />
+                Cupom {cupom.codigo} em uso: {formatDescontoCupom(cupom)} de desconto
+              </p>
+              {cupom.usosRestantes === null ? (
+                <p className="text-xs text-muted-foreground">Desconto aplicado automaticamente em todas as mensalidades.</p>
+              ) : metodo === "cartao" ? (
+                <p className="text-xs text-muted-foreground">No cartão, o desconto entra sozinho {formatDuracaoCupom(cupom.usosRestantes)}.</p>
+              ) : (
+                <label className="flex items-start gap-2 text-xs">
+                  <input type="checkbox" className="mt-0.5" checked={usarCupom} onChange={(e) => setUsarCupom(e.target.checked)} />
+                  <span>
+                    Você ainda pode utilizar este cupom {cupom.usosRestantes} {cupom.usosRestantes > 1 ? "vezes" : "vez"}. Deseja utilizar nessa
+                    renovação? <span className="text-muted-foreground">(vale para o PIX; no cartão o desconto é automático)</span>
+                  </span>
+                </label>
+              )}
+            </div>
+          ) : cupomAplicado ? (
+            <div className="flex items-start justify-between gap-3 rounded-md border border-positive/30 bg-positive/10 p-3 text-sm">
+              <div className="flex flex-col gap-0.5">
+                <p className="flex items-center gap-1.5 font-medium text-positive">
+                  <TicketPercent className="size-4" />
+                  Cupom {cupomAplicado.codigo}: {formatDescontoCupom(cupomAplicado)} de desconto
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="line-through">{formatMoney(cupomAplicado.valorOriginalCentavos)}</span>{" "}
+                  <strong className="text-foreground">{formatMoney(cupomAplicado.valorComDescontoCentavos)}</strong>{" "}
+                  {formatDuracaoCupom(cupomAplicado.duracaoUsos, "primeiras")}
+                  {cupomAplicado.duracaoUsos !== null && `; depois, ${formatMoney(cupomAplicado.valorOriginalCentavos)}`}.
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setCupomAplicado(null)}>
+                Remover
+              </Button>
+            </div>
+          ) : (
+            <form
+              className="flex items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (cupomCodigo.trim()) validarCupomMutation.mutate();
+              }}
+            >
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor="cupom-codigo">Cupom de desconto (opcional)</Label>
+                <Input
+                  id="cupom-codigo"
+                  placeholder="EX.: BEMVINDO10"
+                  value={cupomCodigo}
+                  onChange={(e) => setCupomCodigo(e.target.value.toUpperCase().replace(/\s/g, ""))}
+                />
+              </div>
+              <Button type="submit" variant="secondary" disabled={!cupomCodigo.trim() || validarCupomMutation.isPending}>
+                {validarCupomMutation.isPending ? "Validando..." : "Aplicar"}
+              </Button>
+            </form>
+          )}
 
           {metodo === null && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -398,13 +483,14 @@ export function AssinaturaPage() {
                 <TableHead>Competência</TableHead>
                 <TableHead>Forma</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Desconto</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {faturas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     Nenhuma fatura ainda.
                   </TableCell>
                 </TableRow>
@@ -415,6 +501,9 @@ export function AssinaturaPage() {
                   <TableCell>{fatura.formaPagamento === "cartao" ? "Cartão" : "PIX"}</TableCell>
                   <TableCell>
                     <Badge variant={fatura.status === "paga" ? "positive" : fatura.status === "falhou" ? "negative" : "warning"}>{fatura.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-numeric text-positive">
+                    {fatura.descontoCentavos > 0 ? `− ${formatMoney(fatura.descontoCentavos)}` : "—"}
                   </TableCell>
                   <TableCell className="text-right font-numeric">{formatMoney(fatura.valorCentavos)}</TableCell>
                 </TableRow>
