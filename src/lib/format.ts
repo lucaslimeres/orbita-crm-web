@@ -24,3 +24,12 @@ export function hojeIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+/**
+ * Valor digitado em reais → centavos. Aceita "1.234,56" (vírgula decimal, ponto de milhar)
+ * e "1234.56"/"59.9" (ponto decimal). `NaN` se não for número.
+ */
+export function reaisParaCentavos(valor: string): number {
+  const texto = valor.includes(",") ? valor.replace(/\./g, "").replace(",", ".") : valor;
+  return Math.round(Number(texto) * 100);
+}
