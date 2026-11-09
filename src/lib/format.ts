@@ -34,6 +34,18 @@ export function reaisParaCentavos(valor: string): number {
   return Math.round(Number(texto) * 100);
 }
 
+/** "10%" ou "R$ 10,00" — descrição curta do desconto de um cupom. */
+export function formatDescontoCupom(cupom: { tipo: "valor_fixo" | "percentual"; valor: number }): string {
+  return cupom.tipo === "percentual" ? `${cupom.valor}%` : formatMoney(cupom.valor);
+}
+
+/** "nas próximas 3 mensalidades" / "na próxima mensalidade" / "em todas as mensalidades". */
+export function formatDuracaoCupom(usos: number | null, palavra: "próximas" | "primeiras" = "próximas"): string {
+  if (usos === null) return "em todas as mensalidades";
+  if (usos === 1) return palavra === "primeiras" ? "na primeira mensalidade" : "na próxima mensalidade";
+  return `nas ${palavra} ${usos} mensalidades`;
+}
+
 const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 /** "2026-11" (AAAA-MM) → "nov/26" — eixo e tabelas dos gráficos do Dashboard. */

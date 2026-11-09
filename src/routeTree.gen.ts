@@ -24,11 +24,14 @@ import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authentic
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
 import { Route as AdminConviteRouteImport } from './routes/admin/convite'
+import { Route as AdminEsqueciSenhaRouteImport } from './routes/admin/esqueci-senha'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminRedefinirSenhaRouteImport } from './routes/admin/redefinir-senha'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos/index'
 import { Route as AuthenticatedProjetosProjetoIdRouteImport } from './routes/_authenticated/projetos/$projetoId'
 import { Route as AdminAuthenticatedIndexRouteImport } from './routes/admin/_authenticated/index'
 import { Route as AdminAuthenticatedAdministradoresRouteImport } from './routes/admin/_authenticated/administradores'
+import { Route as AdminAuthenticatedCuponsRouteImport } from './routes/admin/_authenticated/cupons'
 import { Route as AdminAuthenticatedFinanceiroRouteImport } from './routes/admin/_authenticated/financeiro'
 import { Route as AdminAuthenticatedContasIndexRouteImport } from './routes/admin/_authenticated/contas/index'
 import { Route as AdminAuthenticatedContasEmpresaIdRouteImport } from './routes/admin/_authenticated/contas/$empresaId'
@@ -107,9 +110,19 @@ const AdminConviteRoute = AdminConviteRouteImport.update({
   path: '/admin/convite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEsqueciSenhaRoute = AdminEsqueciSenhaRouteImport.update({
+  id: '/admin/esqueci-senha',
+  path: '/admin/esqueci-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRedefinirSenhaRoute = AdminRedefinirSenhaRouteImport.update({
+  id: '/admin/redefinir-senha',
+  path: '/admin/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProjetosIndexRoute =
@@ -133,6 +146,12 @@ const AdminAuthenticatedAdministradoresRoute =
   AdminAuthenticatedAdministradoresRouteImport.update({
     id: '/administradores',
     path: '/administradores',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
+const AdminAuthenticatedCuponsRoute =
+  AdminAuthenticatedCuponsRouteImport.update({
+    id: '/cupons',
+    path: '/cupons',
     getParentRoute: () => AdminAuthenticatedRoute,
   } as any)
 const AdminAuthenticatedFinanceiroRoute =
@@ -169,9 +188,12 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin': typeof AdminAuthenticatedRouteWithChildren
   '/admin/convite': typeof AdminConviteRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/cupons': typeof AdminAuthenticatedCuponsRoute
   '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/admin/': typeof AdminAuthenticatedIndexRoute
@@ -192,9 +214,12 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/convite': typeof AdminConviteRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/cupons': typeof AdminAuthenticatedCuponsRoute
   '/admin/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
   '/admin': typeof AdminAuthenticatedIndexRoute
@@ -218,9 +243,12 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/convite': typeof AdminConviteRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/_authenticated/projetos/$projetoId': typeof AuthenticatedProjetosProjetoIdRoute
   '/admin/_authenticated/administradores': typeof AdminAuthenticatedAdministradoresRoute
+  '/admin/_authenticated/cupons': typeof AdminAuthenticatedCuponsRoute
   '/admin/_authenticated/financeiro': typeof AdminAuthenticatedFinanceiroRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/admin/_authenticated/': typeof AdminAuthenticatedIndexRoute
@@ -244,9 +272,12 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/admin'
     | '/admin/convite'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/redefinir-senha'
     | '/projetos/$projetoId'
     | '/admin/administradores'
+    | '/admin/cupons'
     | '/admin/financeiro'
     | '/projetos/'
     | '/admin/'
@@ -267,9 +298,12 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/usuarios'
     | '/admin/convite'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/redefinir-senha'
     | '/projetos/$projetoId'
     | '/admin/administradores'
+    | '/admin/cupons'
     | '/admin/financeiro'
     | '/projetos'
     | '/admin'
@@ -292,9 +326,12 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/admin/_authenticated'
     | '/admin/convite'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/redefinir-senha'
     | '/_authenticated/projetos/$projetoId'
     | '/admin/_authenticated/administradores'
+    | '/admin/_authenticated/cupons'
     | '/admin/_authenticated/financeiro'
     | '/_authenticated/projetos/'
     | '/admin/_authenticated/'
@@ -313,7 +350,9 @@ export interface RootRouteChildren {
   VerificarEmailRoute: typeof VerificarEmailRoute
   AdminAuthenticatedRoute: typeof AdminAuthenticatedRouteWithChildren
   AdminConviteRoute: typeof AdminConviteRoute
+  AdminEsqueciSenhaRoute: typeof AdminEsqueciSenhaRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminRedefinirSenhaRoute: typeof AdminRedefinirSenhaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -423,11 +462,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/esqueci-senha': {
+      id: '/admin/esqueci-senha'
+      path: '/admin/esqueci-senha'
+      fullPath: '/admin/esqueci-senha'
+      preLoaderRoute: typeof AdminEsqueciSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/redefinir-senha': {
+      id: '/admin/redefinir-senha'
+      path: '/admin/redefinir-senha'
+      fullPath: '/admin/redefinir-senha'
+      preLoaderRoute: typeof AdminRedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/projetos/': {
@@ -456,6 +509,13 @@ declare module '@tanstack/react-router' {
       path: '/administradores'
       fullPath: '/admin/administradores'
       preLoaderRoute: typeof AdminAuthenticatedAdministradoresRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/cupons': {
+      id: '/admin/_authenticated/cupons'
+      path: '/cupons'
+      fullPath: '/admin/cupons'
+      preLoaderRoute: typeof AdminAuthenticatedCuponsRouteImport
       parentRoute: typeof AdminAuthenticatedRoute
     }
     '/admin/_authenticated/financeiro': {
@@ -508,6 +568,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 interface AdminAuthenticatedRouteChildren {
   AdminAuthenticatedAdministradoresRoute: typeof AdminAuthenticatedAdministradoresRoute
+  AdminAuthenticatedCuponsRoute: typeof AdminAuthenticatedCuponsRoute
   AdminAuthenticatedFinanceiroRoute: typeof AdminAuthenticatedFinanceiroRoute
   AdminAuthenticatedIndexRoute: typeof AdminAuthenticatedIndexRoute
   AdminAuthenticatedContasEmpresaIdRoute: typeof AdminAuthenticatedContasEmpresaIdRoute
@@ -517,6 +578,7 @@ interface AdminAuthenticatedRouteChildren {
 const AdminAuthenticatedRouteChildren: AdminAuthenticatedRouteChildren = {
   AdminAuthenticatedAdministradoresRoute:
     AdminAuthenticatedAdministradoresRoute,
+  AdminAuthenticatedCuponsRoute: AdminAuthenticatedCuponsRoute,
   AdminAuthenticatedFinanceiroRoute: AdminAuthenticatedFinanceiroRoute,
   AdminAuthenticatedIndexRoute: AdminAuthenticatedIndexRoute,
   AdminAuthenticatedContasEmpresaIdRoute:
@@ -538,7 +600,9 @@ const rootRouteChildren: RootRouteChildren = {
   VerificarEmailRoute: VerificarEmailRoute,
   AdminAuthenticatedRoute: AdminAuthenticatedRouteWithChildren,
   AdminConviteRoute: AdminConviteRoute,
+  AdminEsqueciSenhaRoute: AdminEsqueciSenhaRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminRedefinirSenhaRoute: AdminRedefinirSenhaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
