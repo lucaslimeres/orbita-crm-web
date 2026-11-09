@@ -22,7 +22,8 @@ export function LoginPage() {
     try {
       const { usuario, accessToken } = await authApi.login(email, senha);
       setSession({ usuario, accessToken });
-      navigate({ to: "/financeiro" });
+      // E-mail ainda não confirmado: o sistema fica bloqueado até digitar o código.
+      navigate({ to: usuario.emailVerificadoEm ? "/financeiro" : "/verificar-email" });
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Não foi possível entrar.");
     } finally {

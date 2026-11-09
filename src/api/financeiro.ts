@@ -88,5 +88,6 @@ export const financeiroApi = {
 
   listRetiradas: () => api.get<Retirada[]>("/financeiro/retiradas"),
   createRetirada: (data: CreateRetiradaRequest) => api.post<{ id: number }>("/financeiro/retiradas", data),
+  updateRetirada: (id: number, data: CreateRetiradaRequest) => api.patch<void>(`/financeiro/retiradas/${id}`, data),
   deleteRetirada: (id: number) => api.delete<void>(`/financeiro/retiradas/${id}`),
 };

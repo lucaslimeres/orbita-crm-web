@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { isCnpjValido, limparCnpj, mascararCnpj } from "@/lib/cnpj";
 import { Plus } from "lucide-react";
 
 const TIPOS: { value: ProjetoTipo; label: string }[] = [
@@ -36,14 +37,15 @@ export function ProjetosPage() {
   const queryClient = useQueryClient();
   const usuario = useAuthStore((s) => s.usuario);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Omit<CreateProjetoRequest, "tipos" | "responsavelUsuarioId"> & { tipos: ProjetoTipo[]; responsavelUsuarioId: string }>({
+  const formVazio = () => ({
     nome: "",
     descricao: "",
     cnpj: "",
     dataInicio: new Date().toISOString().slice(0, 10),
-    tipos: [],
+    tipos: [] as ProjetoTipo[],
     responsavelUsuarioId: usuario?.id ?? "",
   });
+  const [form, setForm] = useState<Omit<CreateProjetoRequest, "tipos" | "responsavelUsuarioId"> & { tipos: ProjetoTipo[]; responsavelUsuarioId: string }>(formVazio);
 
   const { data: projetos = [], isLoading } = useQuery({ queryKey: ["projetos"], queryFn: () => projetosApi.list() });
   const { data: usuarios = [] } = useQuery({ queryKey: ["usuarios"], queryFn: () => usuariosApi.list() });
@@ -56,10 +58,18 @@ export function ProjetosPage() {
     mutationFn: (data: CreateProjetoRequest) => projetosApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      // O contador "Plano Free · x/1" e o bloqueio vêm de GET /assinatura — sem isso, a tela
+      // só via o limite atingido depois de recarregar ou trocar de aba.
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
       setShowForm(false);
+      setForm(formVazio());
       toast.success("Projeto criado.");
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível criar o projeto."),
+    onError: (error) => {
+      // Recusa por limite (ex.: criado em outra aba) — atualiza o contador para a tela bloquear.
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
+      toast.error(error instanceof ApiError ? error.message : "Não foi possível criar o projeto.");
+    },
   });
 
   function toggleTipo(tipo: ProjetoTipo) {
@@ -70,6 +80,13 @@ export function ProjetosPage() {
     e.preventDefault();
     if (form.tipos.length === 0) return toast.error("Selecione ao menos um tipo de entrega.");
     if (!form.responsavelUsuarioId) return toast.error("Selecione um responsável.");
+    if (form.cnpj && !isCnpjValido(form.cnpj)) {
+      return toast.error(
+        limparCnpj(form.cnpj).length < 14
+          ? "CNPJ incompleto — são 14 caracteres (00.000.000/0000-00)."
+          : "CNPJ inválido. Confira os caracteres digitados.",
+      );
+    }
     createMutation.mutate({ ...form, cnpj: form.cnpj || null });
   }
 
@@ -120,7 +137,12 @@ export function ProjetosPage() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>CNPJ (opcional — projeto autoral não precisa)</Label>
-                  <Input value={form.cnpj ?? ""} onChange={(e) => setForm((f) => ({ ...f, cnpj: e.target.value }))} />
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    autoCapitalize="characters"
+                    value={form.cnpj ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, cnpj: mascararCnpj(e.target.value) }))}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>Data de início</Label>

@@ -33,10 +33,15 @@ export function UsuariosPage() {
     mutationFn: (data: CreateUsuarioRequest) => usuariosApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      // Contador "Plano Free · x/1" e bloqueio vêm de GET /assinatura — atualizar junto.
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
       setForm(emptyForm);
       toast.success("Usuário criado. Um e-mail de convite foi enviado para ele definir a senha.");
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível criar o usuário."),
+    onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
+      toast.error(error instanceof ApiError ? error.message : "Não foi possível criar o usuário.");
+    },
   });
 
   function handleSubmit(e: React.FormEvent) {

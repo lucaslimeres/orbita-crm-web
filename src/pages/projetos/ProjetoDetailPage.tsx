@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { projetosApi, type CreateReceitaRequest } from "@/api/projetos";
 import { financeiroApi } from "@/api/financeiro";
 import { ApiError } from "@/lib/api";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney, hojeIso } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ const emptyReceita: CreateReceitaRequest & { valorReais: string } = {
   tipo: "pagamento_unico",
   valorReais: "",
   valorCentavos: 0,
-  dataInicio: new Date().toISOString().slice(0, 10),
+  dataInicio: hojeIso(),
   recorrencia: null,
 };
 
@@ -147,7 +147,7 @@ export function ProjetoDetailPage() {
                 <TableRow key={receita.id}>
                   <TableCell>{receita.clienteNome}</TableCell>
                   <TableCell>{receita.tipo === "mensalidade" ? "Mensalidade" : "Pagamento único"}</TableCell>
-                  <TableCell className="font-numeric">{formatDate(receita.dataInicio)}</TableCell>
+                  <TableCell className="font-numeric">{formatDateOnly(receita.dataInicio)}</TableCell>
                   <TableCell>
                     <Badge variant={receita.status === "recebido" ? "positive" : receita.status === "atrasado" ? "negative" : "warning"}>
                       {receita.status}
@@ -185,7 +185,7 @@ export function ProjetoDetailPage() {
                 <TableRow key={gasto.id}>
                   <TableCell>{gasto.categoria}</TableCell>
                   <TableCell className="text-muted-foreground">{gasto.descricao ?? "—"}</TableCell>
-                  <TableCell className="font-numeric">{formatDate(gasto.dataInicio)}</TableCell>
+                  <TableCell className="font-numeric">{formatDateOnly(gasto.dataInicio)}</TableCell>
                   <TableCell className="text-right font-numeric text-negative">{formatMoney(gasto.valorCentavos)}</TableCell>
                 </TableRow>
               ))}

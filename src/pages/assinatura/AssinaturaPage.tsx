@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CreditCard, QrCode } from "lucide-react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { assinaturaApi } from "@/api/assinatura";
 import { tokenizeCard } from "@/lib/pagarme";
+import { limparNomeCartao, mascararNumeroCartao, soDigitos, validarCartao } from "@/lib/cartao";
 import { useAssinaturaSocket } from "@/lib/ws";
 import { ApiError } from "@/lib/api";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -148,7 +150,7 @@ export function AssinaturaPage() {
           <CardContent className="flex items-start gap-3 pt-5 text-negative">
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm">
-              Sua assinatura PRO venceu em <strong>{assinatura.proximaCobranca ? formatDate(assinatura.proximaCobranca) : "—"}</strong> e não foi renovada — o
+              Sua assinatura PRO venceu em <strong>{assinatura.proximaCobranca ? formatDateOnly(assinatura.proximaCobranca) : "—"}</strong> e não foi renovada — o
               restante do sistema fica bloqueado até o pagamento ser confirmado.
             </p>
           </CardContent>
@@ -202,7 +204,7 @@ export function AssinaturaPage() {
               </span>
             )}
             {planoEfetivo === "pro" && assinatura.proximaCobranca && (
-              <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDate(assinatura.proximaCobranca)}</span>
+              <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDateOnly(assinatura.proximaCobranca)}</span>
             )}
           </div>
         </CardContent>
@@ -227,6 +229,14 @@ export function AssinaturaPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-4 pt-5 text-center">
             <CardDescription>PIX gerado — pague para ativar a assinatura</CardDescription>
+            {/* QR gerado no navegador a partir do próprio copia-e-cola (payload EMV do PIX) —
+                não depende de imagem hospedada pelo Pagar.me. */}
+            {faturaPixPendente.pixCopiaCola && (
+              <div className="rounded-md bg-white p-3">
+                <QRCodeSVG value={faturaPixPendente.pixCopiaCola} size={192} level="M" aria-label="QR code do PIX" />
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Escaneie o QR code no app do seu banco ou use o código copia-e-cola abaixo.</p>
             <div className="max-w-full break-all rounded-md border border-border bg-background px-4 py-3 font-numeric text-xs">{faturaPixPendente.pixCopiaCola}</div>
             <p className="text-xs text-muted-foreground">Assim que o pagamento cair, esta tela atualiza sozinha.</p>
             <div className="flex gap-2">
@@ -304,30 +314,71 @@ export function AssinaturaPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                const erro = validarCartao(cardForm);
+                if (erro) return toast.error(erro);
                 checkoutCartaoMutation.mutate();
               }}
               className="flex flex-col gap-3"
             >
               <div className="flex flex-col gap-1.5">
-                <Label>Número do cartão</Label>
-                <Input required inputMode="numeric" placeholder="0000 0000 0000 0000" value={cardForm.number} onChange={(e) => setCardForm((f) => ({ ...f, number: e.target.value }))} />
+                <Label htmlFor="cartao-numero">Número do cartão</Label>
+                <Input
+                  required
+                  inputMode="numeric"
+                  id="cartao-numero"
+                  autoComplete="cc-number"
+                  placeholder="0000 0000 0000 0000"
+                  value={cardForm.number}
+                  onChange={(e) => setCardForm((f) => ({ ...f, number: mascararNumeroCartao(e.target.value) }))}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Nome impresso no cartão</Label>
-                <Input required value={cardForm.holderName} onChange={(e) => setCardForm((f) => ({ ...f, holderName: e.target.value }))} />
+                <Label htmlFor="cartao-nome">Nome impresso no cartão</Label>
+                <Input
+                  required
+                  id="cartao-nome"
+                  autoComplete="cc-name"
+                  placeholder="COMO ESTÁ NO CARTÃO"
+                  value={cardForm.holderName}
+                  onChange={(e) => setCardForm((f) => ({ ...f, holderName: limparNomeCartao(e.target.value) }))}
+                />
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label>Mês</Label>
-                  <Input required placeholder="MM" maxLength={2} value={cardForm.expMonth} onChange={(e) => setCardForm((f) => ({ ...f, expMonth: e.target.value }))} />
+                  <Label htmlFor="cartao-mes">Mês</Label>
+                  <Input
+                    required
+                    inputMode="numeric"
+                    id="cartao-mes"
+                  autoComplete="cc-exp-month"
+                    placeholder="MM"
+                    value={cardForm.expMonth}
+                    onChange={(e) => setCardForm((f) => ({ ...f, expMonth: soDigitos(e.target.value, 2) }))}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label>Ano</Label>
-                  <Input required placeholder="AA" maxLength={2} value={cardForm.expYear} onChange={(e) => setCardForm((f) => ({ ...f, expYear: e.target.value }))} />
+                  <Label htmlFor="cartao-ano">Ano</Label>
+                  <Input
+                    required
+                    inputMode="numeric"
+                    id="cartao-ano"
+                  autoComplete="cc-exp-year"
+                    placeholder="AA"
+                    value={cardForm.expYear}
+                    onChange={(e) => setCardForm((f) => ({ ...f, expYear: soDigitos(e.target.value, 2) }))}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label>CVV</Label>
-                  <Input required maxLength={4} value={cardForm.cvv} onChange={(e) => setCardForm((f) => ({ ...f, cvv: e.target.value }))} />
+                  <Label htmlFor="cartao-cvv">CVV</Label>
+                  <Input
+                    required
+                    inputMode="numeric"
+                    id="cartao-cvv"
+                  autoComplete="cc-csc"
+                    placeholder="000"
+                    value={cardForm.cvv}
+                    onChange={(e) => setCardForm((f) => ({ ...f, cvv: soDigitos(e.target.value, 4) }))}
+                  />
                 </div>
               </div>
               <Button type="submit" disabled={checkoutCartaoMutation.isPending}>

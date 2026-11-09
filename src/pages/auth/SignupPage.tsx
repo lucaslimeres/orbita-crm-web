@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Check, X } from "lucide-react";
 import { isCpfValido, mascararCpf } from "@/lib/cpf";
+import { isCnpjValido, limparCnpj, mascararCnpj } from "@/lib/cnpj";
 import logo from "@/assets/orbita-lockup-branco.svg";
 
 const PLANOS = [
@@ -40,6 +41,14 @@ export function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.cnpj && !isCnpjValido(form.cnpj)) {
+      toast.error(
+        limparCnpj(form.cnpj).length < 14
+          ? "CNPJ incompleto — são 14 caracteres (00.000.000/0000-00)."
+          : "CNPJ inválido. Confira os caracteres digitados.",
+      );
+      return;
+    }
     if (!isCpfValido(form.cpf)) {
       toast.error("CPF inválido. Confira os números digitados.");
       return;
@@ -140,7 +149,13 @@ export function SignupPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="cnpj">CNPJ (opcional)</Label>
-                <Input id="cnpj" value={form.cnpj} onChange={(e) => set("cnpj", e.target.value)} />
+                <Input
+                  id="cnpj"
+                  placeholder="00.000.000/0000-00"
+                  autoCapitalize="characters"
+                  value={form.cnpj}
+                  onChange={(e) => set("cnpj", mascararCnpj(e.target.value))}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="empresaEmail">E-mail da empresa</Label>

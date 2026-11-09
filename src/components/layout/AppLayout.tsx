@@ -33,8 +33,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
     if (me?.assinatura) setAssinatura(me.assinatura);
   }, [me, setAssinatura]);
 
+  // E-mail não confirmado bloqueia tudo (a API responde 403 EMAIL_NAO_VERIFICADO) — manda
+  // pra tela do código. Vem antes do bloqueio por assinatura de propósito.
   useEffect(() => {
-    if (me?.assinatura.bloqueada && location.pathname !== "/assinatura") {
+    if (me && !me.usuario.emailVerificadoEm) navigate({ to: "/verificar-email" });
+  }, [me, navigate]);
+
+  useEffect(() => {
+    if (me?.usuario.emailVerificadoEm && me.assinatura.bloqueada && location.pathname !== "/assinatura") {
       navigate({ to: "/assinatura" });
     }
   }, [me, location.pathname, navigate]);
