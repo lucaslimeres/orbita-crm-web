@@ -19,6 +19,7 @@ import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as VerificarEmailRouteImport } from './routes/verificar-email'
 import { Route as AuthenticatedAssinaturaRouteImport } from './routes/_authenticated/assinatura'
 import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
@@ -79,6 +80,11 @@ const AuthenticatedAssinaturaRoute = AuthenticatedAssinaturaRouteImport.update({
 const AuthenticatedContaRoute = AuthenticatedContaRouteImport.update({
   id: '/conta',
   path: '/conta',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/verificar-email': typeof VerificarEmailRoute
   '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/conta': typeof AuthenticatedContaRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin': typeof AdminAuthenticatedRouteWithChildren
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/verificar-email': typeof VerificarEmailRoute
   '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/conta': typeof AuthenticatedContaRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/convite': typeof AdminConviteRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/verificar-email': typeof VerificarEmailRoute
   '/_authenticated/assinatura': typeof AuthenticatedAssinaturaRoute
   '/_authenticated/conta': typeof AuthenticatedContaRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/verificar-email'
     | '/assinatura'
     | '/conta'
+    | '/dashboard'
     | '/financeiro'
     | '/usuarios'
     | '/admin'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/verificar-email'
     | '/assinatura'
     | '/conta'
+    | '/dashboard'
     | '/financeiro'
     | '/usuarios'
     | '/admin/convite'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/verificar-email'
     | '/_authenticated/assinatura'
     | '/_authenticated/conta'
+    | '/_authenticated/dashboard'
     | '/_authenticated/financeiro'
     | '/_authenticated/usuarios'
     | '/admin/_authenticated'
@@ -376,6 +388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/financeiro': {
       id: '/_authenticated/financeiro'
       path: '/financeiro'
@@ -466,6 +485,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAssinaturaRoute: typeof AuthenticatedAssinaturaRoute
   AuthenticatedContaRoute: typeof AuthenticatedContaRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedProjetosProjetoIdRoute: typeof AuthenticatedProjetosProjetoIdRoute
@@ -475,6 +495,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAssinaturaRoute: AuthenticatedAssinaturaRoute,
   AuthenticatedContaRoute: AuthenticatedContaRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedProjetosProjetoIdRoute: AuthenticatedProjetosProjetoIdRoute,

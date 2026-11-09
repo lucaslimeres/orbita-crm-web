@@ -35,6 +35,11 @@
   --color-negative: var(--negative);
   --color-warning: var(--warning);
 
+  --color-chart-in: var(--chart-in);
+  --color-chart-out: var(--chart-out);
+  --color-chart-balance: var(--chart-balance);
+  --color-chart-neg: var(--chart-neg);
+
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
@@ -53,6 +58,16 @@
   --positive: #0f7a66;
   --negative: #c0392f;
   --warning: #9a6206;
+
+  /* Gráficos (tela Dashboard) — paleta validada com o validador da skill dataviz contra
+     --surface: entradas (azul), saídas (laranja), saldo projetado (verde-água), margem
+     negativa (vermelho). Texto nunca usa estas cores. */
+  --chart-in: #2a78d6;
+  --chart-out: #eb6834;
+  --chart-balance: #1baf7a;
+  --chart-neg: #e34948;
+  --chart-grid: #ecece8;
+  --chart-axis: #c9c9c3;
 }
 
 .dark {
@@ -67,6 +82,13 @@
   --positive: #3dbfa3;
   --negative: #f07268;
   --warning: #e0a33c;
+
+  --chart-in: #3987e5;
+  --chart-out: #d95926;
+  --chart-balance: #199e70;
+  --chart-neg: #e66767;
+  --chart-grid: #1b2338;
+  --chart-axis: #2c3653;
 }
 
 @layer base {

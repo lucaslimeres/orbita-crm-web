@@ -33,3 +33,11 @@ export function reaisParaCentavos(valor: string): number {
   const texto = valor.includes(",") ? valor.replace(/\./g, "").replace(",", ".") : valor;
   return Math.round(Number(texto) * 100);
 }
+
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** "2026-11" (AAAA-MM) → "nov/26" — eixo e tabelas dos gráficos do Dashboard. */
+export function rotuloMes(mes: string): string {
+  const [ano, m] = mes.split("-");
+  return `${MESES_CURTOS[Number(m) - 1]}/${ano.slice(2)}`;
+}
