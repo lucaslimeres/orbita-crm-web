@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { adminPanelApi, type AdminProjeto } from "@/api/admin";
 import { AdminApiError } from "@/lib/adminApi";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
@@ -83,7 +83,7 @@ export function AdminContaDetailPage() {
                 {assinatura.cartaoBandeira} •••• {assinatura.cartaoFinal}
               </span>
             )}
-            {assinatura?.proximaCobranca && <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDate(assinatura.proximaCobranca)}</span>}
+            {assinatura?.proximaCobranca && <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDateOnly(assinatura.proximaCobranca)}</span>}
           </div>
         </CardContent>
       </Card>
@@ -147,7 +147,7 @@ export function AdminContaDetailPage() {
               {projetos.map((projeto) => (
                 <TableRow key={projeto.id}>
                   <TableCell>{projeto.nome}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(projeto.dataInicio)}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDateOnly(projeto.dataInicio)}</TableCell>
                   <TableCell>
                     <Select
                       value={projeto.status}

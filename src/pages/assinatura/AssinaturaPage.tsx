@@ -7,7 +7,7 @@ import { assinaturaApi } from "@/api/assinatura";
 import { tokenizeCard } from "@/lib/pagarme";
 import { useAssinaturaSocket } from "@/lib/ws";
 import { ApiError } from "@/lib/api";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -148,7 +148,7 @@ export function AssinaturaPage() {
           <CardContent className="flex items-start gap-3 pt-5 text-negative">
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm">
-              Sua assinatura PRO venceu em <strong>{assinatura.proximaCobranca ? formatDate(assinatura.proximaCobranca) : "—"}</strong> e não foi renovada — o
+              Sua assinatura PRO venceu em <strong>{assinatura.proximaCobranca ? formatDateOnly(assinatura.proximaCobranca) : "—"}</strong> e não foi renovada — o
               restante do sistema fica bloqueado até o pagamento ser confirmado.
             </p>
           </CardContent>
@@ -202,7 +202,7 @@ export function AssinaturaPage() {
               </span>
             )}
             {planoEfetivo === "pro" && assinatura.proximaCobranca && (
-              <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDate(assinatura.proximaCobranca)}</span>
+              <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDateOnly(assinatura.proximaCobranca)}</span>
             )}
           </div>
         </CardContent>
