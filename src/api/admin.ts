@@ -134,6 +134,24 @@ function query(params: Record<string, string | number | undefined>): string {
   return s ? `?${s}` : "";
 }
 
+export interface CupomAdmin {
+  id: number;
+  codigo: string;
+  tipo: "valor_fixo" | "percentual";
+  /** valor_fixo: centavos; percentual: 1 a 99. */
+  valor: number;
+  /** `null` = para sempre. */
+  duracaoUsos: number | null;
+  expiraEm: string | null;
+  limiteClientes: number | null;
+  ativo: boolean;
+  /** Quantas empresas já aplicaram. */
+  clientes: number;
+  createdAt: string;
+}
+
+export type CupomAdminInput = Omit<CupomAdmin, "id" | "clientes" | "createdAt">;
+
 export const adminPanelApi = {
   login: (email: string, senha: string) => adminApi.post<AdminLoginResponse>("/admin/login", { email, senha }),
   me: () => adminApi.get<{ admin: AdminAuth }>("/admin/me"),
@@ -150,5 +168,10 @@ export const adminPanelApi = {
   createAdmin: (data: CreateAdminAccountInput) => adminApi.post<AdminAccount>("/admin/administradores", data),
   updateAdmin: (id: string, data: UpdateAdminAccountInput) => adminApi.patch<AdminAccount>(`/admin/administradores/${id}`, data),
   deleteAdmin: (id: string) => adminApi.delete<void>(`/admin/administradores/${id}`),
+  listCupons: () => adminApi.get<CupomAdmin[]>("/admin/cupons"),
+  createCupom: (data: CupomAdminInput) => adminApi.post<CupomAdmin>("/admin/cupons", data),
+  updateCupom: (id: number, data: Partial<CupomAdminInput>) => adminApi.patch<CupomAdmin>(`/admin/cupons/${id}`, data),
   confirmarConvite: (data: ConfirmarConviteAdminInput) => adminApi.post<{ message: string }>("/admin/confirmar-convite", data),
+  esqueciSenha: (email: string) => adminApi.post<{ message: string }>("/admin/esqueci-senha", { email }),
+  redefinirSenha: (token: string, novaSenha: string) => adminApi.post<{ message: string }>("/admin/redefinir-senha", { token, novaSenha }),
 };

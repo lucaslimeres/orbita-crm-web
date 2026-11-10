@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
-import { AlertTriangle, CreditCard, LayoutDashboard, LogOut, Moon, Sun, UserCog, Users, Wallet } from "lucide-react";
+import { AlertTriangle, ChartColumn, CreditCard, LayoutDashboard, LogOut, Moon, Sun, UserCog, Users, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { authApi } from "@/api/auth";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import logoBranco from "@/assets/orbita-lockup-branco.svg";
 import logoCor from "@/assets/orbita-lockup-cor.svg";
 
 const NAV_ITEMS = [
+  { to: "/dashboard", label: "Dashboard", icon: ChartColumn },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/projetos", label: "Projetos", icon: LayoutDashboard },
   { to: "/usuarios", label: "Usuários", icon: Users },

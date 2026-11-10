@@ -25,7 +25,7 @@ export function VerifyEmailCodePage() {
   const irParaDestino = () =>
     assinatura?.plano === "pro" && assinatura.status !== "ativa"
       ? navigate({ to: "/assinatura", search: { pagar: true } })
-      : navigate({ to: "/financeiro" });
+      : navigate({ to: "/dashboard" });
 
   // Quem já confirmou o e-mail (ex.: voltou pra esta URL) segue direto.
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => authApi.me() });

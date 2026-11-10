@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, ShieldCheck, UserCog, Users, Wallet } from "lucide-react";
+import { LayoutDashboard, LogOut, ShieldCheck, TicketPercent, UserCog, Users, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuthStore } from "@/stores/useAdminAuthStore";
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/contas", label: "Contas", icon: Users },
   { to: "/admin/financeiro", label: "Financeiro", icon: Wallet },
+  { to: "/admin/cupons", label: "Cupons", icon: TicketPercent },
   { to: "/admin/administradores", label: "Administradores", icon: UserCog },
 ];
 

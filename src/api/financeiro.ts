@@ -71,6 +71,8 @@ export interface DashboardFinanceiro {
   saldoCentavos: number;
   gastosPorCategoria: { categoria: string; totalCentavos: number }[];
   previsaoGastosRecorrentes: Gasto[];
+  /** Pendentes (inclusive vencidos) + ocorrências de recorrentes até hoje+90 — calculado na API. */
+  aPagar90Dias: { totalCentavos: number; quantidade: number };
   fluxoCaixaMensal: { mes: string; entradasCentavos: number; saidasCentavos: number }[];
 }
 
@@ -84,6 +86,7 @@ export const financeiroApi = {
 
   listAportes: () => api.get<Aporte[]>("/financeiro/aportes"),
   createAporte: (data: CreateAporteRequest) => api.post<{ id: number }>("/financeiro/aportes", data),
+  updateAporte: (id: number, data: CreateAporteRequest) => api.patch<void>(`/financeiro/aportes/${id}`, data),
   deleteAporte: (id: number) => api.delete<void>(`/financeiro/aportes/${id}`),
 
   listRetiradas: () => api.get<Retirada[]>("/financeiro/retiradas"),
