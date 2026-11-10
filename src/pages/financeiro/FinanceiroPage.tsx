@@ -38,10 +38,12 @@ export function FinanceiroPage() {
         </Card>
         <Card>
           <CardContent className="pt-5">
-            <CardDescription>Gastos recorrentes nos próximos 90 dias</CardDescription>
-            <CardTitle className="mt-1 font-numeric text-3xl">
-              {formatMoney(dashboard?.previsaoGastosRecorrentes.reduce((s, g) => s + g.valorCentavos, 0) ?? 0)}
-            </CardTitle>
+            <CardDescription>A pagar nos próximos 90 dias</CardDescription>
+            <CardTitle className="mt-1 font-numeric text-3xl">{formatMoney(dashboard?.aPagar90Dias?.totalCentavos ?? 0)}</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {dashboard?.aPagar90Dias?.quantidade === 1 ? "1 conta" : `${dashboard?.aPagar90Dias?.quantidade ?? 0} contas`} — pendentes e
+              recorrentes
+            </p>
           </CardContent>
         </Card>
         <Card>

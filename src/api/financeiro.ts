@@ -71,6 +71,8 @@ export interface DashboardFinanceiro {
   saldoCentavos: number;
   gastosPorCategoria: { categoria: string; totalCentavos: number }[];
   previsaoGastosRecorrentes: Gasto[];
+  /** Pendentes (inclusive vencidos) + ocorrências de recorrentes até hoje+90 — calculado na API. */
+  aPagar90Dias: { totalCentavos: number; quantidade: number };
   fluxoCaixaMensal: { mes: string; entradasCentavos: number; saidasCentavos: number }[];
 }
 
