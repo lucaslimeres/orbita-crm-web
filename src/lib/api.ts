@@ -53,14 +53,13 @@ async function request<T>(method: HttpMethod, path: string, body?: unknown): Pro
       // Erro de negócio (`throw new Error(...)` nos services): `{ message }`.
       // Falha de validação Zod (`schema.parse`): `{ errors: [{ message, path, ... }] }`,
       // sem `message` no topo — sem isso, cai no fallback genérico "HTTP 400".
+      // Só o texto de cada erro (os schemas trazem mensagens em pt-BR): o nome técnico do
+      // campo ("valorCentavos: ...") não ajuda o usuário final.
       const body = data as { message?: string; errors?: Array<{ message?: string; path?: (string | number)[] }> };
       if (body?.message) {
         message = body.message;
       } else if (Array.isArray(body?.errors) && body.errors.length > 0) {
-        message = body.errors
-          .map((e) => (e.path?.length ? `${e.path.join(".")}: ${e.message}` : e.message))
-          .filter(Boolean)
-          .join(" | ");
+        message = [...new Set(body.errors.map((e) => e.message).filter(Boolean))].join(" | ");
       }
     } catch {
       // corpo vazio ou não-JSON
