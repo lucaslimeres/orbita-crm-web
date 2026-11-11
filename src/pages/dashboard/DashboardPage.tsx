@@ -1,8 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
 import { dashboardApi, type ContaAPagar, type FatiaValor, type MargemProjeto, type MesFluxo, type MesPrevisao } from "@/api/dashboard";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
@@ -21,17 +24,37 @@ const ROTULO_TIPO_ENTRADA: Record<FatiaValor["tipo"], string> = {
 };
 
 export function DashboardPage() {
+  // Sem filtro: todo o período. Com um mês: indicadores de entradas/saídas, "onde se gasta",
+  // "de onde vem" e margem por projeto passam a mostrar só aquele mês (filtrado na API).
+  const [mes, setMes] = useState<string | null>(null);
+  const periodo = mes ? `em ${rotuloMes(mes)}` : "em todo o período";
   const { data, isLoading, error } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: () => dashboardApi.geral(),
+    queryKey: ["dashboard", mes],
+    queryFn: () => dashboardApi.geral(mes),
+    placeholderData: keepPreviousData,
     retry: (falhas, err) => !(err instanceof ApiError && err.status === 403) && falhas < 1,
   });
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.02em]">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Para onde vai o dinheiro, de onde ele vem e o que esperar dos próximos meses.</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em]">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Para onde vai o dinheiro, de onde ele vem e o que esperar dos próximos meses.</p>
+        </div>
+        {data && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dashboard-mes">Período</Label>
+            <Select id="dashboard-mes" value={mes ?? ""} onChange={(e) => setMes(e.target.value || null)} className="min-w-44">
+              <option value="">Todo o período</option>
+              {data.filtro.mesesDisponiveis.map((m) => (
+                <option key={m} value={m}>
+                  {rotuloMes(m)}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
 
       {error ? (
@@ -55,13 +78,13 @@ export function DashboardPage() {
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : (
         <>
-          <Indicadores data={data.indicadores} />
+          <Indicadores data={data.indicadores} periodo={mes ? rotuloMes(mes) : null} />
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <ChartCard<FatiaValor>
               titulo="Onde mais se gasta"
-              descricao="Gastos pagos por categoria, últimos 12 meses"
-              vazio={data.gastosPorCategoria.length === 0 && "Nenhum gasto pago nos últimos 12 meses."}
+              descricao={`Gastos pagos por categoria, ${periodo}`}
+              vazio={data.gastosPorCategoria.length === 0 && `Nenhum gasto pago ${periodo}.`}
               linhas={data.gastosPorCategoria}
               colunas={[
                 { titulo: "Categoria", valor: (f) => f.rotulo },
@@ -73,8 +96,8 @@ export function DashboardPage() {
 
             <ChartCard<FatiaValor>
               titulo="De onde vem o dinheiro"
-              descricao="Receitas recebidas por projeto e aportes, últimos 12 meses"
-              vazio={data.entradasPorOrigem.length === 0 && "Nenhuma entrada (receita recebida ou aporte) nos últimos 12 meses."}
+              descricao={`Receitas recebidas por projeto e aportes, ${periodo}`}
+              vazio={data.entradasPorOrigem.length === 0 && `Nenhuma entrada (receita recebida ou aporte) ${periodo}.`}
               linhas={data.entradasPorOrigem}
               colunas={[
                 { titulo: "Origem", valor: (f) => f.rotulo },
@@ -114,7 +137,7 @@ export function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <ChartCard<MesPrevisao>
               titulo="Previsão dos próximos meses"
-              descricao="Receitas e gastos recorrentes previstos + lançamentos pendentes, mês atual e 5 seguintes"
+              descricao="Recorrentes (repetindo o valor da última mensalidade, até o encerramento) + lançamentos pendentes, mês atual e 5 seguintes"
               legenda={[ENTRADAS, SAIDAS]}
               linhas={data.previsao}
               colunas={[
@@ -150,7 +173,11 @@ export function DashboardPage() {
 
             <ChartCard<MargemProjeto>
               titulo="Margem por projeto"
-              descricao="Receitas − gastos lançados no projeto (qualquer status), acumulado — mesma conta do painel do projeto"
+              descricao={
+                mes
+                  ? `Receitas − gastos lançados no projeto (qualquer status) ${periodo}`
+                  : "Receitas − gastos lançados no projeto (qualquer status), acumulado — mesma conta do painel do projeto"
+              }
               vazio={data.margemPorProjeto.length === 0 && "Nenhum projeto cadastrado."}
               linhas={data.margemPorProjeto}
               colunas={[
@@ -175,12 +202,13 @@ export function DashboardPage() {
   );
 }
 
-function Indicadores({ data }: { data: Awaited<ReturnType<typeof dashboardApi.geral>>["indicadores"] }) {
+function Indicadores({ data, periodo }: { data: Awaited<ReturnType<typeof dashboardApi.geral>>["indicadores"]; periodo: string | null }) {
+  const sufixo = periodo ? `em ${periodo}` : "no período";
   const tiles = [
-    { rotulo: "Saldo em caixa", valor: data.saldoCentavos, sinal: true },
-    { rotulo: "Entradas no mês", valor: data.entradasMesCentavos },
-    { rotulo: "Saídas no mês", valor: data.saidasMesCentavos },
-    { rotulo: "Resultado do mês", valor: data.resultadoMesCentavos, sinal: true },
+    { rotulo: "Saldo em caixa (hoje)", valor: data.saldoCentavos, sinal: true },
+    { rotulo: `Entradas ${sufixo}`, valor: data.entradasCentavos },
+    { rotulo: `Saídas ${sufixo}`, valor: data.saidasCentavos },
+    { rotulo: `Resultado ${sufixo}`, valor: data.resultadoCentavos, sinal: true },
     {
       rotulo: "A pagar em 30 dias",
       valor: data.aPagarCentavos,
