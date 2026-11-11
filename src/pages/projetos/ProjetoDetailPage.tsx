@@ -1,62 +1,26 @@
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { toast } from "sonner";
 import { GastosSection } from "@/pages/financeiro/GastosSection";
-import { projetosApi, type CreateReceitaRequest } from "@/api/projetos";
-import { ApiError } from "@/lib/api";
-import { formatDateOnly, formatMoney, hojeIso } from "@/lib/format";
+import { ReceitasSection } from "./ReceitasSection";
+import { projetosApi } from "@/api/projetos";
+import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-const emptyReceita: CreateReceitaRequest & { valorReais: string } = {
-  clienteNome: "",
-  tipo: "pagamento_unico",
-  valorReais: "",
-  valorCentavos: 0,
-  dataInicio: hojeIso(),
-  recorrencia: null,
-};
-
 export function ProjetoDetailPage() {
-  const { projetoId } = useParams({ from: "/_authenticated/projetos/$projetoId" });
-  const id = Number(projetoId);
-  const queryClient = useQueryClient();
-  const [form, setForm] = useState(emptyReceita);
-
-  const { data: projeto } = useQuery({ queryKey: ["projetos", id], queryFn: () => projetosApi.get(id) });
-  const { data: dashboard } = useQuery({ queryKey: ["projetos", id, "dashboard"], queryFn: () => projetosApi.dashboard(id) });
-  const { data: receitas = [] } = useQuery({ queryKey: ["projetos", id, "receitas"], queryFn: () => projetosApi.listReceitas(id) });
-
-  const createReceitaMutation = useMutation({
-    mutationFn: (data: CreateReceitaRequest) => projetosApi.createReceita(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projetos", id] });
-      setForm(emptyReceita);
-      toast.success("Receita lançada.");
-    },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível lançar a receita."),
+  const { projetoId } = useParams({
+    from: "/_authenticated/projetos/$projetoId",
   });
+  const id = Number(projetoId);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const valorCentavos = Math.round(Number(form.valorReais.replace(",", ".")) * 100);
-    if (!valorCentavos) return toast.error("Informe um valor válido.");
-    if (!form.clienteNome) return toast.error("Informe o cliente.");
-    createReceitaMutation.mutate({
-      clienteNome: form.clienteNome,
-      tipo: form.tipo,
-      valorCentavos,
-      dataInicio: form.dataInicio,
-      recorrencia: form.tipo === "mensalidade" ? "mensal" : null,
-    });
-  }
+  const { data: projeto } = useQuery({
+    queryKey: ["projetos", id],
+    queryFn: () => projetosApi.get(id),
+  });
+  const { data: dashboard } = useQuery({
+    queryKey: ["projetos", id, "dashboard"],
+    queryFn: () => projetosApi.dashboard(id),
+  });
 
   if (!projeto) return <p className="text-sm text-muted-foreground">Carregando...</p>;
 
@@ -92,72 +56,7 @@ export function ProjetoDetailPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium tracking-[0.02em] text-muted-foreground uppercase">Receitas</h2>
-        <Card>
-          <CardContent className="pt-5">
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="flex flex-col gap-1.5">
-                <Label>Cliente</Label>
-                <Input value={form.clienteNome} onChange={(e) => setForm((f) => ({ ...f, clienteNome: e.target.value }))} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Tipo</Label>
-                <Select value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as CreateReceitaRequest["tipo"] }))}>
-                  <option value="pagamento_unico">Pagamento único</option>
-                  <option value="mensalidade">Mensalidade</option>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Valor (R$)</Label>
-                <Input inputMode="decimal" placeholder="0,00" value={form.valorReais} onChange={(e) => setForm((f) => ({ ...f, valorReais: e.target.value }))} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Data</Label>
-                <Input type="date" value={form.dataInicio} onChange={(e) => setForm((f) => ({ ...f, dataInicio: e.target.value }))} />
-              </div>
-              <div className="flex items-end">
-                <Button type="submit" disabled={createReceitaMutation.isPending}>
-                  Lançar receita
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {receitas.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    Nenhuma receita lançada ainda.
-                  </TableCell>
-                </TableRow>
-              )}
-              {receitas.map((receita) => (
-                <TableRow key={receita.id}>
-                  <TableCell>{receita.clienteNome}</TableCell>
-                  <TableCell>{receita.tipo === "mensalidade" ? "Mensalidade" : "Pagamento único"}</TableCell>
-                  <TableCell className="font-numeric">{formatDateOnly(receita.dataInicio)}</TableCell>
-                  <TableCell>
-                    <Badge variant={receita.status === "recebido" ? "positive" : receita.status === "atrasado" ? "negative" : "warning"}>
-                      {receita.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-numeric text-positive">{formatMoney(receita.valorCentavos)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <ReceitasSection projetoId={id} />
       </section>
 
       <section className="flex flex-col gap-3">

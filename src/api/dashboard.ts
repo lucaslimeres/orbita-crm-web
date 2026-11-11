@@ -40,11 +40,14 @@ export interface MargemProjeto {
 
 export interface DashboardGeral {
   referencia: string;
+  /** Mês filtrado (`null` = todo o período) e os meses com movimento, para o seletor. */
+  filtro: { mes: string | null; mesesDisponiveis: string[] };
   indicadores: {
     saldoCentavos: number;
-    entradasMesCentavos: number;
-    saidasMesCentavos: number;
-    resultadoMesCentavos: number;
+    /** Do mês filtrado, ou de todo o período sem filtro. */
+    entradasCentavos: number;
+    saidasCentavos: number;
+    resultadoCentavos: number;
     aPagarCentavos: number;
     aPagarQuantidade: number;
   };
@@ -57,5 +60,5 @@ export interface DashboardGeral {
 }
 
 export const dashboardApi = {
-  geral: () => api.get<DashboardGeral>("/dashboard"),
+  geral: (mes: string | null) => api.get<DashboardGeral>(mes ? `/dashboard?mes=${mes}` : "/dashboard"),
 };

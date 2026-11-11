@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { financeiroApi, type CreateGastoRequest, type Gasto, type Recorrencia } from "@/api/financeiro";
+import { financeiroApi, type CreateGastoRequest, type Gasto, type NovaMensalidadeRequest, type Recorrencia } from "@/api/financeiro";
 import { projetosApi } from "@/api/projetos";
 import { ApiError } from "@/lib/api";
 import { formatDateOnly, formatMoney, hojeIso, reaisParaCentavos } from "@/lib/format";
@@ -14,6 +14,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { agruparMensalidades } from "@/lib/mensalidades";
+import { cn } from "@/lib/utils";
+import { AcoesRecorrente, EncerrarRecorrenciaDialog, NovaMensalidadeDialog, ResumoRecorrente } from "./mensalidades";
 
 const RECORRENCIAS: { value: Recorrencia; label: string }[] = [
   { value: "unico", label: "Único" },
@@ -94,10 +97,20 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
         create: (data: CreateGastoRequest) => projetosApi.createGasto(projetoId, semProjeto(data)),
         update: (id: number, data: Partial<CreateGastoRequest>) => projetosApi.updateGasto(projetoId, id, semProjeto(data)),
         remove: (id: number) => projetosApi.deleteGasto(projetoId, id),
+        addMensalidade: (id: number, data: NovaMensalidadeRequest) => projetosApi.addMensalidadeGasto(projetoId, id, data),
       }
-    : { list: () => financeiroApi.listGastos(), create: financeiroApi.createGasto, update: financeiroApi.updateGasto, remove: financeiroApi.deleteGasto };
+    : {
+        list: () => financeiroApi.listGastos(),
+        create: financeiroApi.createGasto,
+        update: financeiroApi.updateGasto,
+        remove: financeiroApi.deleteGasto,
+        addMensalidade: financeiroApi.addMensalidadeGasto,
+      };
   const [form, setForm] = useState<GastoFormState>(formVazio);
-  const [editando, setEditando] = useState<{ id: number; form: GastoFormState } | null>(null);
+  const [editando, setEditando] = useState<{ id: number; form: GastoFormState; mensalidade: boolean } | null>(null);
+  const [abertos, setAbertos] = useState<Set<number>>(new Set());
+  const [novaMensalidade, setNovaMensalidade] = useState<Gasto | null>(null);
+  const [encerrando, setEncerrando] = useState<Gasto | null>(null);
 
   const { data: gastos = [], isLoading } = useQuery({
     queryKey: doProjeto ? ["projetos", projetoId, "gastos"] : ["financeiro", "gastos"],
@@ -139,6 +152,36 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível marcar o gasto como pago."),
   });
 
+  const invalidar = () => {
+    queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+  };
+
+  const mensalidadeMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: NovaMensalidadeRequest }) => api.addMensalidade(id, data),
+    onSuccess: (_, { id }) => {
+      invalidar();
+      setNovaMensalidade(null);
+      setAbertos((a) => new Set(a).add(id));
+      toast.success("Mensalidade adicionada.");
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível adicionar a mensalidade."),
+  });
+
+  const encerrarMutation = useMutation({
+    mutationFn: ({ id, dataFim }: { id: number; dataFim: string | null }) => api.update(id, { dataFim }),
+    onSuccess: (_, { dataFim }) => {
+      invalidar();
+      setEncerrando(null);
+      toast.success(dataFim ? "Recorrência encerrada." : "Recorrência reaberta.");
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível atualizar a recorrência."),
+  });
+
+  // Mensalidades aparecem agrupadas dentro do gasto recorrente (expandir pela linha dele).
+  const { topo, mensalidadesDe } = agruparMensalidades(gastos);
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.remove(id),
     onSuccess: () => {
@@ -158,7 +201,72 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
     e.preventDefault();
     if (!editando) return;
     const data = paraRequest(editando.form);
-    if (data) updateMutation.mutate({ id: editando.id, data });
+    // Mensalidade não muda de recorrência nem de projeto: isso fica no gasto principal.
+    if (data) updateMutation.mutate({ id: editando.id, data: editando.mensalidade ? { ...data, recorrencia: "unico", projetoId: undefined } : data });
+  }
+
+  function alternar(id: number) {
+    setAbertos((a) => {
+      const novo = new Set(a);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  }
+
+  function linha(gasto: Gasto, mensalidade: boolean) {
+    return (
+      <TableRow key={gasto.id} className={cn(mensalidade && "bg-muted/40")}>
+        <TableCell className={cn(mensalidade && "pl-8 text-muted-foreground")}>{mensalidade ? "↳ Mensalidade" : gasto.categoria}</TableCell>
+        <TableCell className="text-muted-foreground">
+          {gasto.descricao ?? "—"}
+          {!doProjeto && !mensalidade && gasto.projetoId && <span className="block text-xs">Projeto: {nomeProjeto(gasto.projetoId)}</span>}
+          {gasto.serie && <ResumoRecorrente serie={gasto.serie} dataFim={gasto.dataFim} aberto={abertos.has(gasto.id)} onAlternar={() => alternar(gasto.id)} />}
+        </TableCell>
+        <TableCell>{!mensalidade && <Badge variant="outline">{RECORRENCIAS.find((r) => r.value === gasto.recorrencia)?.label}</Badge>}</TableCell>
+        <TableCell className="font-numeric">{formatDateOnly(gasto.dataInicio)}</TableCell>
+        <TableCell className="font-numeric text-muted-foreground">{gasto.proximaOcorrencia ? formatDateOnly(gasto.proximaOcorrencia) : "—"}</TableCell>
+        <TableCell>
+          <Badge variant={gasto.status === "pago" ? "positive" : "warning"}>{gasto.status === "pago" ? "Pago" : "Pendente"}</Badge>
+        </TableCell>
+        <TableCell className="text-right font-numeric text-negative">{formatMoney(gasto.valorCentavos)}</TableCell>
+        <TableCell>
+          <div className="flex items-center justify-end gap-1">
+            {gasto.status === "pendente" && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={marcarPagoMutation.isPending && marcarPagoMutation.variables === gasto.id}
+                onClick={() => marcarPagoMutation.mutate(gasto.id)}
+              >
+                <CheckCircle2 className="size-4" />
+                Marcar como pago
+              </Button>
+            )}
+            {gasto.serie && (
+              <AcoesRecorrente serie={gasto.serie} dataFim={gasto.dataFim} onAdicionar={() => setNovaMensalidade(gasto)} onEncerrar={() => setEncerrando(gasto)} />
+            )}
+            <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditando({ id: gasto.id, form: formDoGasto(gasto), mensalidade })}>
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Excluir"
+              onClick={() => {
+                const msg =
+                  gasto.serie && gasto.serie.quantidade > 1
+                    ? `Excluir este gasto recorrente e as ${gasto.serie.quantidade - 1} mensalidades lançadas nele?`
+                    : "Excluir este gasto?";
+                if (window.confirm(msg)) deleteMutation.mutate(gasto.id);
+              }}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
   }
 
   return (
@@ -198,69 +306,39 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && gastos.length === 0 && (
+            {!isLoading && topo.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Nenhum gasto lançado ainda.
                 </TableCell>
               </TableRow>
             )}
-            {gastos.map((gasto) => (
-              <TableRow key={gasto.id}>
-                <TableCell>{gasto.categoria}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {gasto.descricao ?? "—"}
-                  {!doProjeto && gasto.projetoId && <span className="block text-xs">Projeto: {nomeProjeto(gasto.projetoId)}</span>}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{RECORRENCIAS.find((r) => r.value === gasto.recorrencia)?.label}</Badge>
-                </TableCell>
-                <TableCell className="font-numeric">{formatDateOnly(gasto.dataInicio)}</TableCell>
-                <TableCell className="font-numeric text-muted-foreground">
-                  {gasto.proximaOcorrencia ? formatDateOnly(gasto.proximaOcorrencia) : "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={gasto.status === "pago" ? "positive" : "warning"}>{gasto.status === "pago" ? "Pago" : "Pendente"}</Badge>
-                </TableCell>
-                <TableCell className="text-right font-numeric text-negative">{formatMoney(gasto.valorCentavos)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    {gasto.status === "pendente" && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={marcarPagoMutation.isPending && marcarPagoMutation.variables === gasto.id}
-                        onClick={() => marcarPagoMutation.mutate(gasto.id)}
-                      >
-                        <CheckCircle2 className="size-4" />
-                        Marcar como pago
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditando({ id: gasto.id, form: formDoGasto(gasto) })}>
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Excluir"
-                      onClick={() => {
-                        if (window.confirm("Excluir este gasto?")) deleteMutation.mutate(gasto.id);
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {topo.flatMap((gasto) => [linha(gasto, false), ...(abertos.has(gasto.id) ? mensalidadesDe(gasto.id).map((m) => linha(m, true)) : [])])}
           </TableBody>
         </Table>
       </Card>
 
       <p className="text-xs text-muted-foreground">
         <strong>Pago</strong>: o dinheiro já saiu — entra no saldo em caixa. <strong>Pendente</strong>: ainda vai ser pago — não desconta do
-        saldo até ser marcado como pago ("Marcar como pago", ou em "Editar" para voltar a pendente).
+        saldo até ser marcado como pago ("Marcar como pago", ou em "Editar" para voltar a pendente). Nos gastos recorrentes, cada mês é
+        lançado em <strong>Mensalidade</strong> (já vem com o valor da última e o mês seguinte); a previsão repete a última mensalidade até a
+        recorrência ser encerrada.
       </p>
+
+      <NovaMensalidadeDialog
+        serie={novaMensalidade?.serie ?? null}
+        titulo={novaMensalidade ? `${novaMensalidade.categoria}${novaMensalidade.descricao ? ` — ${novaMensalidade.descricao}` : ""}` : ""}
+        onClose={() => setNovaMensalidade(null)}
+        onSalvar={(data) => novaMensalidade && mensalidadeMutation.mutate({ id: novaMensalidade.id, data })}
+        salvando={mensalidadeMutation.isPending}
+        rotuloPago="pago"
+      />
+      <EncerrarRecorrenciaDialog
+        alvo={encerrando ? { dataFim: encerrando.dataFim, nome: `${encerrando.categoria}${encerrando.descricao ? ` — ${encerrando.descricao}` : ""}` } : null}
+        onClose={() => setEncerrando(null)}
+        onSalvar={(dataFim) => encerrando && encerrarMutation.mutate({ id: encerrando.id, dataFim })}
+        salvando={encerrarMutation.isPending}
+      />
 
       <Dialog open={!!editando} onOpenChange={(open) => !open && setEditando(null)}>
         <DialogContent>
@@ -275,7 +353,8 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
                 form={editando.form}
                 setForm={(fn) => setEditando((e) => (e ? { ...e, form: typeof fn === "function" ? fn(e.form) : fn } : e))}
                 projetos={projetos}
-                mostrarProjeto={!doProjeto}
+                mostrarProjeto={!doProjeto && !editando.mensalidade}
+                semRecorrencia={editando.mensalidade}
                 compacto
               />
               <div className="col-span-2 flex justify-end gap-2">
@@ -300,6 +379,7 @@ function CamposGasto({
   setForm,
   projetos,
   mostrarProjeto,
+  semRecorrencia = false,
   compacto = false,
 }: {
   idPrefixo: string;
@@ -307,6 +387,8 @@ function CamposGasto({
   setForm: React.Dispatch<React.SetStateAction<GastoFormState>>;
   projetos: { id: number; nome: string }[];
   mostrarProjeto: boolean;
+  /** Mensalidade de um recorrente: a recorrência fica no gasto principal. */
+  semRecorrencia?: boolean;
   compacto?: boolean;
 }) {
   const id = (campo: string) => `${idPrefixo}-${campo}`;
@@ -332,16 +414,18 @@ function CamposGasto({
           onChange={(e) => setForm((f) => ({ ...f, valorReais: e.target.value.replace(/[^\d.,]/g, "") }))}
         />
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={id("recorrencia")}>Recorrência</Label>
-        <Select id={id("recorrencia")} value={form.recorrencia} onChange={(e) => setForm((f) => ({ ...f, recorrencia: e.target.value as Recorrencia }))}>
-          {RECORRENCIAS.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </Select>
-      </div>
+      {!semRecorrencia && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={id("recorrencia")}>Recorrência</Label>
+          <Select id={id("recorrencia")} value={form.recorrencia} onChange={(e) => setForm((f) => ({ ...f, recorrencia: e.target.value as Recorrencia }))}>
+            {RECORRENCIAS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={id("data")}>Data</Label>
         <Input id={id("data")} type="date" required value={form.dataInicio} onChange={(e) => setForm((f) => ({ ...f, dataInicio: e.target.value }))} />
