@@ -40,6 +40,14 @@ export interface NovaMensalidadeRequest {
   data?: string;
 }
 
+/** Categoria de gasto: padrão (todas as empresas, fixa) ou criada pela empresa. */
+export interface CategoriaGasto {
+  /** `null` nas padrão. */
+  id: number | null;
+  nome: string;
+  padrao: boolean;
+}
+
 export interface CreateGastoRequest {
   projetoId?: number | null;
   categoria: string;
@@ -106,6 +114,9 @@ export const financeiroApi = {
   createGasto: (data: CreateGastoRequest) => api.post<{ id: number }>("/financeiro/gastos", data),
   updateGasto: (id: number, data: Partial<CreateGastoRequest>) => api.patch<void>(`/financeiro/gastos/${id}`, data),
   deleteGasto: (id: number) => api.delete<void>(`/financeiro/gastos/${id}`),
+  listCategorias: () => api.get<CategoriaGasto[]>("/financeiro/categorias"),
+  createCategoria: (nome: string) => api.post<CategoriaGasto>("/financeiro/categorias", { nome }),
+  deleteCategoria: (id: number) => api.delete<void>(`/financeiro/categorias/${id}`),
   addMensalidadeGasto: (id: number, data: NovaMensalidadeRequest) => api.post<Gasto>(`/financeiro/gastos/${id}/mensalidades`, data),
 
   listAportes: () => api.get<Aporte[]>("/financeiro/aportes"),
