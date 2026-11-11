@@ -15,8 +15,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { agruparMensalidades } from "@/lib/mensalidades";
-import { cn } from "@/lib/utils";
 import { AcoesRecorrente, EncerrarRecorrenciaDialog, NovaMensalidadeDialog, ResumoRecorrente } from "./mensalidades";
+import { CategoriasDialog } from "./CategoriasDialog";
 
 const RECORRENCIAS: { value: Recorrencia; label: string }[] = [
   { value: "unico", label: "Único" },
@@ -26,7 +26,8 @@ const RECORRENCIAS: { value: Recorrencia; label: string }[] = [
   { value: "anual", label: "Anual" },
 ];
 
-const CATEGORIAS = ["Servidor/Hosting", "Domínio", "Ferramenta/SaaS", "Marketing", "Contabilidade", "Jurídico", "Outro"];
+/** Enquanto a lista da API não chega (e categoria inicial do formulário). */
+const CATEGORIA_INICIAL = "Servidor/Hosting";
 
 type GastoStatus = "pago" | "pendente";
 
@@ -42,7 +43,7 @@ interface GastoFormState {
 }
 
 function formVazio(): GastoFormState {
-  return { categoria: CATEGORIAS[0], valorReais: "", recorrencia: "unico", dataInicio: hojeIso(), status: "pago", projetoId: null, descricao: "" };
+  return { categoria: CATEGORIA_INICIAL, valorReais: "", recorrencia: "unico", dataInicio: hojeIso(), status: "pago", projetoId: null, descricao: "" };
 }
 
 function formDoGasto(gasto: Gasto): GastoFormState {
@@ -111,6 +112,10 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
   const [abertos, setAbertos] = useState<Set<number>>(new Set());
   const [novaMensalidade, setNovaMensalidade] = useState<Gasto | null>(null);
   const [encerrando, setEncerrando] = useState<Gasto | null>(null);
+  const [gerenciarCategorias, setGerenciarCategorias] = useState(false);
+  // Padrão + as criadas pela empresa (API). Ver CategoriasDialog.
+  const { data: categorias = [] } = useQuery({ queryKey: ["financeiro", "categorias"], queryFn: () => financeiroApi.listCategorias() });
+  const nomesCategorias = categorias.map((c) => c.nome);
 
   const { data: gastos = [], isLoading } = useQuery({
     queryKey: doProjeto ? ["projetos", projetoId, "gastos"] : ["financeiro", "gastos"],
@@ -180,7 +185,11 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
   });
 
   // Mensalidades aparecem agrupadas dentro do gasto recorrente (expandir pela linha dele).
-  const { topo, mensalidadesDe } = agruparMensalidades(gastos);
+  // A linha do recorrente mostra a última mensalidade; a lista vai da mais recente para a mais
+  // antiga, e os recorrentes se ordenam pela última mensalidade.
+  const { topo: agrupados, mensalidadesDe } = agruparMensalidades(gastos);
+  const lancamentosDa = (serie: Gasto) => ordenarRecentes([serie, ...mensalidadesDe(serie.id)]);
+  const topo = ordenarRecentes(agrupados, (g) => (g.serie ? g.serie.ultima.data : g.dataInicio));
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.remove(id),
@@ -214,55 +223,108 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
     });
   }
 
-  function linha(gasto: Gasto, mensalidade: boolean) {
+  function botaoMarcarPago(gasto: Gasto) {
+    if (gasto.status !== "pendente") return null;
     return (
-      <TableRow key={gasto.id} className={cn(mensalidade && "bg-muted/40")}>
-        <TableCell className={cn(mensalidade && "pl-8 text-muted-foreground")}>{mensalidade ? "↳ Mensalidade" : gasto.categoria}</TableCell>
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={marcarPagoMutation.isPending && marcarPagoMutation.variables === gasto.id}
+        onClick={() => marcarPagoMutation.mutate(gasto.id)}
+      >
+        <CheckCircle2 className="size-4" />
+        Marcar como pago
+      </Button>
+    );
+  }
+
+  function botaoExcluir(gasto: Gasto) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Excluir"
+        onClick={() => {
+          const msg =
+            gasto.serie && gasto.serie.quantidade > 1
+              ? `Excluir este gasto recorrente e as ${gasto.serie.quantidade - 1} mensalidades lançadas nele?`
+              : "Excluir este gasto?";
+          if (window.confirm(msg)) deleteMutation.mutate(gasto.id);
+        }}
+      >
+        <Trash2 className="size-4" />
+      </Button>
+    );
+  }
+
+  /** Linha principal: gasto avulso, ou o recorrente exibindo a última mensalidade (data, status, valor). */
+  function linha(gasto: Gasto) {
+    const ultima = gasto.serie ? lancamentosDa(gasto)[0] : gasto;
+    return (
+      <TableRow key={gasto.id}>
+        <TableCell>{gasto.categoria}</TableCell>
         <TableCell className="text-muted-foreground">
           {gasto.descricao ?? "—"}
-          {!doProjeto && !mensalidade && gasto.projetoId && <span className="block text-xs">Projeto: {nomeProjeto(gasto.projetoId)}</span>}
-          {gasto.serie && <ResumoRecorrente serie={gasto.serie} dataFim={gasto.dataFim} aberto={abertos.has(gasto.id)} onAlternar={() => alternar(gasto.id)} />}
+          {!doProjeto && gasto.projetoId && <span className="block text-xs">Projeto: {nomeProjeto(gasto.projetoId)}</span>}
+          {gasto.serie && (
+            <ResumoRecorrente serie={gasto.serie} dataFim={gasto.dataFim} aberto={abertos.has(gasto.id)} onAlternar={() => alternar(gasto.id)} semUltima />
+          )}
         </TableCell>
-        <TableCell>{!mensalidade && <Badge variant="outline">{RECORRENCIAS.find((r) => r.value === gasto.recorrencia)?.label}</Badge>}</TableCell>
-        <TableCell className="font-numeric">{formatDateOnly(gasto.dataInicio)}</TableCell>
+        <TableCell>
+          <Badge variant="outline">{RECORRENCIAS.find((r) => r.value === gasto.recorrencia)?.label}</Badge>
+        </TableCell>
+        <TableCell className="font-numeric">{formatDateOnly(ultima.dataInicio)}</TableCell>
         <TableCell className="font-numeric text-muted-foreground">{gasto.proximaOcorrencia ? formatDateOnly(gasto.proximaOcorrencia) : "—"}</TableCell>
         <TableCell>
-          <Badge variant={gasto.status === "pago" ? "positive" : "warning"}>{gasto.status === "pago" ? "Pago" : "Pendente"}</Badge>
+          <Badge variant={ultima.status === "pago" ? "positive" : "warning"}>{ultima.status === "pago" ? "Pago" : "Pendente"}</Badge>
         </TableCell>
-        <TableCell className="text-right font-numeric text-negative">{formatMoney(gasto.valorCentavos)}</TableCell>
+        <TableCell className="text-right font-numeric text-negative">{formatMoney(ultima.valorCentavos)}</TableCell>
         <TableCell>
           <div className="flex items-center justify-end gap-1">
-            {gasto.status === "pendente" && (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={marcarPagoMutation.isPending && marcarPagoMutation.variables === gasto.id}
-                onClick={() => marcarPagoMutation.mutate(gasto.id)}
-              >
-                <CheckCircle2 className="size-4" />
-                Marcar como pago
-              </Button>
-            )}
+            {botaoMarcarPago(ultima)}
             {gasto.serie && (
               <AcoesRecorrente serie={gasto.serie} dataFim={gasto.dataFim} onAdicionar={() => setNovaMensalidade(gasto)} onEncerrar={() => setEncerrando(gasto)} />
             )}
-            <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditando({ id: gasto.id, form: formDoGasto(gasto), mensalidade })}>
-              <Pencil className="size-4" />
-            </Button>
             <Button
               variant="ghost"
               size="icon"
-              title="Excluir"
-              onClick={() => {
-                const msg =
-                  gasto.serie && gasto.serie.quantidade > 1
-                    ? `Excluir este gasto recorrente e as ${gasto.serie.quantidade - 1} mensalidades lançadas nele?`
-                    : "Excluir este gasto?";
-                if (window.confirm(msg)) deleteMutation.mutate(gasto.id);
-              }}
+              title={gasto.serie ? "Editar gasto recorrente" : "Editar"}
+              onClick={() => setEditando({ id: gasto.id, form: formDoGasto(gasto), mensalidade: false })}
             >
-              <Trash2 className="size-4" />
+              <Pencil className="size-4" />
             </Button>
+            {botaoExcluir(gasto)}
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  /** Mensalidade dentro de um recorrente (inclui a 1ª, que é o próprio recorrente). */
+  function linhaMensalidade(m: Gasto, primeira: boolean) {
+    return (
+      <TableRow key={`m-${m.id}`} className="bg-muted/40">
+        <TableCell colSpan={3} className="pl-8 whitespace-nowrap text-muted-foreground">
+          ↳ {primeira ? "1ª mensalidade" : "Mensalidade"}
+        </TableCell>
+        <TableCell className="font-numeric">{formatDateOnly(m.dataInicio)}</TableCell>
+        <TableCell />
+        <TableCell>
+          <Badge variant={m.status === "pago" ? "positive" : "warning"}>{m.status === "pago" ? "Pago" : "Pendente"}</Badge>
+        </TableCell>
+        <TableCell className="text-right font-numeric text-negative">{formatMoney(m.valorCentavos)}</TableCell>
+        <TableCell>
+          <div className="flex items-center justify-end gap-1">
+            {botaoMarcarPago(m)}
+            {/* A 1ª mensalidade é o próprio recorrente: edita/exclui pela linha principal. */}
+            {!primeira && (
+              <>
+                <Button variant="ghost" size="icon" title="Editar mensalidade" onClick={() => setEditando({ id: m.id, form: formDoGasto(m), mensalidade: true })}>
+                  <Pencil className="size-4" />
+                </Button>
+                {botaoExcluir(m)}
+              </>
+            )}
           </div>
         </TableCell>
       </TableRow>
@@ -274,7 +336,15 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
       <Card>
         <CardContent className="pt-5">
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <CamposGasto idPrefixo="novo" form={form} setForm={setForm} projetos={projetos} mostrarProjeto={!doProjeto} />
+            <CamposGasto
+              idPrefixo="novo"
+              form={form}
+              setForm={setForm}
+              projetos={projetos}
+              mostrarProjeto={!doProjeto}
+              categorias={nomesCategorias}
+              onGerenciarCategorias={() => setGerenciarCategorias(true)}
+            />
             <div className="flex items-end">
               <Button type="submit" disabled={createMutation.isPending} className="w-full">
                 Adicionar gasto
@@ -313,7 +383,10 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
                 </TableCell>
               </TableRow>
             )}
-            {topo.flatMap((gasto) => [linha(gasto, false), ...(abertos.has(gasto.id) ? mensalidadesDe(gasto.id).map((m) => linha(m, true)) : [])])}
+            {topo.flatMap((gasto) => [
+              linha(gasto),
+              ...(gasto.serie && abertos.has(gasto.id) ? lancamentosDa(gasto).map((m) => linhaMensalidade(m, m.id === gasto.id)) : []),
+            ])}
           </TableBody>
         </Table>
       </Card>
@@ -325,6 +398,7 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
         recorrência ser encerrada.
       </p>
 
+      <CategoriasDialog open={gerenciarCategorias} onOpenChange={setGerenciarCategorias} categorias={categorias} />
       <NovaMensalidadeDialog
         serie={novaMensalidade?.serie ?? null}
         titulo={novaMensalidade ? `${novaMensalidade.categoria}${novaMensalidade.descricao ? ` — ${novaMensalidade.descricao}` : ""}` : ""}
@@ -355,6 +429,8 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
                 projetos={projetos}
                 mostrarProjeto={!doProjeto && !editando.mensalidade}
                 semRecorrencia={editando.mensalidade}
+                categorias={nomesCategorias}
+                onGerenciarCategorias={() => setGerenciarCategorias(true)}
                 compacto
               />
               <div className="col-span-2 flex justify-end gap-2">
@@ -381,6 +457,8 @@ function CamposGasto({
   mostrarProjeto,
   semRecorrencia = false,
   compacto = false,
+  categorias,
+  onGerenciarCategorias,
 }: {
   idPrefixo: string;
   form: GastoFormState;
@@ -390,19 +468,31 @@ function CamposGasto({
   /** Mensalidade de um recorrente: a recorrência fica no gasto principal. */
   semRecorrencia?: boolean;
   compacto?: boolean;
+  /** Nomes das categorias (padrão + da empresa), vindos da API. */
+  categorias: string[];
+  onGerenciarCategorias: () => void;
 }) {
   const id = (campo: string) => `${idPrefixo}-${campo}`;
+  // A categoria atual do gasto continua na lista mesmo que tenha sido removida depois.
+  const opcoes = categorias.includes(form.categoria) ? categorias : [form.categoria, ...categorias];
   return (
     <>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={id("categoria")}>Categoria</Label>
         <Select id={id("categoria")} value={form.categoria} onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}>
-          {CATEGORIAS.map((c) => (
+          {opcoes.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
         </Select>
+        <button
+          type="button"
+          onClick={onGerenciarCategorias}
+          className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Gerenciar categorias
+        </button>
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={id("valor")}>Valor (R$)</Label>
@@ -465,4 +555,9 @@ function CamposGasto({
       </div>
     </>
   );
+}
+
+/** Mais recente primeiro (data; empate: o lançado por último). */
+function ordenarRecentes<T extends { id: number; dataInicio: string }>(itens: T[], data: (i: T) => string = (i) => i.dataInicio): T[] {
+  return [...itens].sort((a, b) => data(b).slice(0, 10).localeCompare(data(a).slice(0, 10)) || b.id - a.id);
 }

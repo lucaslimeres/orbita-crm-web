@@ -20,17 +20,21 @@ export function ResumoRecorrente({
   dataFim,
   aberto,
   onAlternar,
+  semUltima = false,
 }: {
   serie: ResumoSerie;
   dataFim: string | null;
   aberto: boolean;
   onAlternar: () => void;
+  /** A linha já mostra a última mensalidade (data/valor) — o resumo fica só com a contagem. */
+  semUltima?: boolean;
 }) {
   return (
     <button type="button" onClick={onAlternar} className="mt-0.5 flex items-start gap-1 text-left text-xs text-muted-foreground hover:text-foreground">
       {aberto ? <ChevronDown className="mt-px size-3.5 shrink-0" /> : <ChevronRight className="mt-px size-3.5 shrink-0" />}
       <span>
-        {serie.quantidade} mensalidade{serie.quantidade === 1 ? "" : "s"} · última {formatDateOnly(serie.ultima.data)} ({formatMoney(serie.ultima.valorCentavos)})
+        {serie.quantidade} mensalidade{serie.quantidade === 1 ? "" : "s"}
+        {!semUltima && ` · última ${formatDateOnly(serie.ultima.data)} (${formatMoney(serie.ultima.valorCentavos)})`}
         {dataFim && <span className="text-warning"> · encerrada em {formatDateOnly(dataFim)}</span>}
       </span>
     </button>
@@ -52,9 +56,8 @@ export function AcoesRecorrente({
   return (
     <>
       {serie.sugestao && (
-        <Button variant="secondary" size="sm" onClick={onAdicionar} title="Adicionar a mensalidade seguinte">
+        <Button variant="secondary" size="icon" onClick={onAdicionar} title="Adicionar mensalidade" aria-label="Adicionar mensalidade">
           <CalendarPlus className="size-4" />
-          Mensalidade
         </Button>
       )}
       <Button variant="ghost" size="icon" title={dataFim ? "Reabrir ou mudar o encerramento" : "Encerrar recorrência"} onClick={onEncerrar}>
