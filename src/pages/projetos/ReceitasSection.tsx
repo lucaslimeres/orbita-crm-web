@@ -6,8 +6,7 @@ import { projetosApi, type CreateReceitaRequest, type Receita } from "@/api/proj
 import type { NovaMensalidadeRequest } from "@/api/financeiro";
 import { ApiError } from "@/lib/api";
 import { formatDateOnly, formatMoney, hojeIso, reaisParaCentavos } from "@/lib/format";
-import { agruparMensalidades } from "@/lib/mensalidades";
-import { cn } from "@/lib/utils";
+import { agruparMensalidades, ordenarRecentes } from "@/lib/mensalidades";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +59,11 @@ export function ReceitasSection({ projetoId }: { projetoId: number }) {
     queryKey: ["projetos", projetoId, "receitas"],
     queryFn: () => projetosApi.listReceitas(projetoId),
   });
-  const { topo, mensalidadesDe } = agruparMensalidades(receitas);
+  // Mesma ordenação dos gastos: a linha da receita recorrente mostra a última mensalidade; a
+  // lista expandida vai da mais recente para a mais antiga; tudo ordenado pela data mais recente.
+  const { topo: agrupadas, mensalidadesDe } = agruparMensalidades(receitas);
+  const lancamentosDa = (serie: Receita) => ordenarRecentes([serie, ...mensalidadesDe(serie.id)]);
+  const topo = ordenarRecentes(agrupadas, (r) => (r.serie ? r.serie.ultima.data : r.dataInicio));
 
   const invalidar = () => {
     queryClient.invalidateQueries({ queryKey: ["projetos", projetoId] });
@@ -140,43 +143,70 @@ export function ReceitasSection({ projetoId }: { projetoId: number }) {
     });
   }
 
-  function linha(receita: Receita, mensalidade: boolean) {
-    const status = STATUS[receita.status];
+  function botaoRecebido(receita: Receita) {
+    if (receita.status === "recebido") return null;
     return (
-      <TableRow key={receita.id} className={cn(mensalidade && "bg-muted/40")}>
-        <TableCell className={cn(mensalidade && "pl-8 text-muted-foreground")}>
-          {mensalidade ? "↳ Mensalidade" : nomeReceita(receita)}
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={recebidoMutation.isPending && recebidoMutation.variables === receita.id}
+        onClick={() => recebidoMutation.mutate(receita.id)}
+      >
+        <CheckCircle2 className="size-4" />
+        Marcar como recebido
+      </Button>
+    );
+  }
+
+  function botaoExcluir(receita: Receita) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Excluir"
+        onClick={() => {
+          const msg =
+            receita.serie && receita.serie.quantidade > 1
+              ? `Excluir esta receita recorrente e as ${receita.serie.quantidade - 1} mensalidades lançadas nela?`
+              : "Excluir esta receita?";
+          if (window.confirm(msg)) deleteMutation.mutate(receita.id);
+        }}
+      >
+        <Trash2 className="size-4" />
+      </Button>
+    );
+  }
+
+  /** Linha principal: receita avulsa, ou a recorrente exibindo a última mensalidade (data, status, valor). */
+  function linha(receita: Receita) {
+    const ultima = receita.serie ? lancamentosDa(receita)[0] : receita;
+    const status = STATUS[ultima.status];
+    return (
+      <TableRow key={receita.id}>
+        <TableCell>
+          {nomeReceita(receita)}
           {receita.serie && (
             <ResumoRecorrente
               serie={receita.serie}
               dataFim={receita.dataFim}
               aberto={abertos.has(receita.id)}
               onAlternar={() => alternar(receita.id)}
+              semUltima
             />
           )}
         </TableCell>
-        <TableCell>{mensalidade ? "" : receita.tipo === "mensalidade" ? "Mensalidade" : "Pagamento único"}</TableCell>
-        <TableCell className="font-numeric">{formatDateOnly(receita.dataInicio)}</TableCell>
+        <TableCell>{receita.tipo === "mensalidade" ? "Mensalidade" : "Pagamento único"}</TableCell>
+        <TableCell className="font-numeric">{formatDateOnly(ultima.dataInicio)}</TableCell>
         <TableCell className="font-numeric text-muted-foreground">
           {receita.proximaOcorrencia ? formatDateOnly(receita.proximaOcorrencia) : "—"}
         </TableCell>
         <TableCell>
           <Badge variant={status.variant}>{status.label}</Badge>
         </TableCell>
-        <TableCell className="text-right font-numeric text-positive">{formatMoney(receita.valorCentavos)}</TableCell>
+        <TableCell className="text-right font-numeric text-positive">{formatMoney(ultima.valorCentavos)}</TableCell>
         <TableCell>
           <div className="flex items-center justify-end gap-1">
-            {receita.status !== "recebido" && (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={recebidoMutation.isPending && recebidoMutation.variables === receita.id}
-                onClick={() => recebidoMutation.mutate(receita.id)}
-              >
-                <CheckCircle2 className="size-4" />
-                Marcar como recebido
-              </Button>
-            )}
+            {botaoRecebido(ultima)}
             {receita.serie && (
               <AcoesRecorrente
                 serie={receita.serie}
@@ -185,20 +215,32 @@ export function ReceitasSection({ projetoId }: { projetoId: number }) {
                 onEncerrar={() => setEncerrando(receita)}
               />
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Excluir"
-              onClick={() => {
-                const msg =
-                  receita.serie && receita.serie.quantidade > 1
-                    ? `Excluir esta receita recorrente e as ${receita.serie.quantidade - 1} mensalidades lançadas nela?`
-                    : "Excluir esta receita?";
-                if (window.confirm(msg)) deleteMutation.mutate(receita.id);
-              }}
-            >
-              <Trash2 className="size-4" />
-            </Button>
+            {botaoExcluir(receita)}
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  /** Mensalidade dentro de uma receita recorrente (inclui a 1ª, que é a própria receita). */
+  function linhaMensalidade(m: Receita, primeira: boolean) {
+    const status = STATUS[m.status];
+    return (
+      <TableRow key={`m-${m.id}`} className="bg-muted/40">
+        <TableCell colSpan={2} className="pl-8 whitespace-nowrap text-muted-foreground">
+          ↳ {primeira ? "1ª mensalidade" : "Mensalidade"}
+        </TableCell>
+        <TableCell className="font-numeric">{formatDateOnly(m.dataInicio)}</TableCell>
+        <TableCell />
+        <TableCell>
+          <Badge variant={status.variant}>{status.label}</Badge>
+        </TableCell>
+        <TableCell className="text-right font-numeric text-positive">{formatMoney(m.valorCentavos)}</TableCell>
+        <TableCell>
+          <div className="flex items-center justify-end gap-1">
+            {botaoRecebido(m)}
+            {/* A 1ª mensalidade é a própria receita recorrente: exclui pela linha principal. */}
+            {!primeira && botaoExcluir(m)}
           </div>
         </TableCell>
       </TableRow>
@@ -294,7 +336,10 @@ export function ReceitasSection({ projetoId }: { projetoId: number }) {
                 </TableCell>
               </TableRow>
             )}
-            {topo.flatMap((r) => [linha(r, false), ...(abertos.has(r.id) ? mensalidadesDe(r.id).map((m) => linha(m, true)) : [])])}
+            {topo.flatMap((r) => [
+              linha(r),
+              ...(r.serie && abertos.has(r.id) ? lancamentosDa(r).map((m) => linhaMensalidade(m, m.id === r.id)) : []),
+            ])}
           </TableBody>
         </Table>
       </Card>
