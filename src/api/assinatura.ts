@@ -79,5 +79,6 @@ export const assinaturaApi = {
   /** `cupom`: cupom novo nesta cobrança; `usarCupom`: usar o cupom já em uso nesta renovação. */
   gerarPix: (opcoes: { cupom?: string; usarCupom?: boolean } = {}) => api.post<Fatura>("/assinatura/pix", opcoes),
   validarCupom: (codigo: string) => api.post<CupomPreview>("/assinatura/cupom/validar", { codigo }),
+  cancelarPro: () => api.post<AssinaturaComFaturas>("/assinatura/cancelar"),
   verificarFatura: (id: number) => api.post<Fatura>(`/assinatura/faturas/${id}/verificar`),
 };

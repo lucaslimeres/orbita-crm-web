@@ -131,6 +131,25 @@ export function AssinaturaPage() {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível gerar o PIX."),
   });
 
+  // Cancelar o PRO: para de cobrar já; o PRO vale até o fim do período pago e depois a
+  // conta volta ao Free sozinha. PRO não pago/vencido volta ao Free na hora (ver docs/assinatura.md).
+  const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
+  const cancelarMutation = useMutation({
+    mutationFn: () => assinaturaApi.cancelarPro(),
+    onSuccess: (result) => {
+      queryClient.setQueryData(["assinatura"], result);
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      setConfirmarCancelamento(false);
+      toast.success(
+        result.planoEfetivo === "pro" && result.assinatura.proximaCobranca
+          ? `Plano PRO cancelado. Ele continua valendo até ${formatDateOnly(result.assinatura.proximaCobranca)}.`
+          : "Pronto, sua conta voltou para o plano Free.",
+      );
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível cancelar o plano PRO."),
+  });
+
   const verificarMutation = useMutation({
     mutationFn: (faturaId: number) => assinaturaApi.verificarFatura(faturaId),
     onSuccess: (fatura) => {
@@ -148,7 +167,10 @@ export function AssinaturaPage() {
   // Plano cru "pro" mas não pago/em dia (sem_assinatura, atrasada, cancelada) — o card de
   // pagamento fala em ativar/regularizar o PRO em vez de "fazer upgrade".
   const escolheuPro = assinatura.plano === "pro";
-  const emRiscoDeSuspensao = assinatura.tentativasFalhaCartao > 0 && !bloqueada;
+  const emRiscoDeSuspensao = assinatura.tentativasFalhaCartao > 0 && !bloqueada && assinatura.status === "ativa";
+  // Cancelado pelo cliente, mas ainda dentro do período pago: PRO até `proximaCobranca`.
+  const proCancelado = planoEfetivo === "pro" && assinatura.status === "cancelada";
+  const proAtivo = planoEfetivo === "pro" && assinatura.status === "ativa";
 
   function copiarCodigoPix(codigo: string) {
     navigator.clipboard.writeText(codigo);
@@ -220,8 +242,11 @@ export function AssinaturaPage() {
                 )}
               </span>
             )}
-            {planoEfetivo === "pro" && assinatura.proximaCobranca && (
+            {proAtivo && assinatura.proximaCobranca && (
               <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDateOnly(assinatura.proximaCobranca)}</span>
+            )}
+            {proCancelado && assinatura.proximaCobranca && (
+              <span className="text-xs text-muted-foreground">PRO até {formatDateOnly(assinatura.proximaCobranca)}</span>
             )}
             {cupom && (
               <span className="flex items-center gap-1.5 text-xs text-positive">
@@ -289,19 +314,73 @@ export function AssinaturaPage() {
             ) : (
               <p className="text-sm text-muted-foreground">Escolha uma forma de pagamento para {bloqueada ? "regularizar" : "reativar"} o plano PRO.</p>
             )}
-            <Button onClick={() => abrirDialog()}>{proPendente ? "Pagar e ativar o PRO" : bloqueada ? "Regularizar pagamento" : "Reativar o PRO"}</Button>
+            <div className="flex flex-wrap gap-2">
+              {/* Desistir do PRO não pago / vencido: volta ao Free na hora (e destrava o acesso). */}
+              {(proPendente || bloqueada) && (
+                <Button variant="ghost" onClick={() => setConfirmarCancelamento(true)}>
+                  Continuar no plano Free
+                </Button>
+              )}
+              <Button onClick={() => abrirDialog()}>{proPendente ? "Pagar e ativar o PRO" : bloqueada ? "Regularizar pagamento" : "Reativar o PRO"}</Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : proCancelado ? (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">Plano PRO cancelado</p>
+              <p className="text-sm text-muted-foreground">
+                Nada mais será cobrado. O PRO continua valendo até{" "}
+                <strong>{assinatura.proximaCobranca ? formatDateOnly(assinatura.proximaCobranca) : "o fim do período pago"}</strong>; depois disso a
+                conta volta para o plano Free ({limites.usuarios.atual} usuário{limites.usuarios.atual === 1 ? "" : "s"} e {limites.projetos.atual} projeto
+                {limites.projetos.atual === 1 ? "" : "s"} ativo{limites.projetos.atual === 1 ? "" : "s"} hoje — o Free permite 1 de cada para criar novos).
+              </p>
+            </div>
+            <Button onClick={() => abrirDialog()}>Reativar o PRO</Button>
           </CardContent>
         </Card>
       ) : (
-        !precisaPagar &&
-        assinatura.formaPagamento === "cartao" && (
-          <div>
-            <Button variant="secondary" onClick={() => abrirDialog("cartao")}>
-              Trocar cartão
+        proAtivo && (
+          <div className="flex flex-wrap gap-2">
+            {assinatura.formaPagamento === "cartao" && (
+              <Button variant="secondary" onClick={() => abrirDialog("cartao")}>
+                Trocar cartão
+              </Button>
+            )}
+            <Button variant="ghost" className="text-muted-foreground" onClick={() => setConfirmarCancelamento(true)}>
+              Cancelar plano PRO
             </Button>
           </div>
         )
       )}
+
+      <Dialog open={confirmarCancelamento} onOpenChange={setConfirmarCancelamento}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{proAtivo ? "Cancelar o plano PRO?" : "Voltar para o plano Free?"}</DialogTitle>
+            <DialogDescription>
+              {proAtivo
+                ? `Nada mais será cobrado${assinatura.formaPagamento === "cartao" ? " no seu cartão" : ""}. Você continua com o PRO até ${
+                    assinatura.proximaCobranca ? formatDateOnly(assinatura.proximaCobranca) : "o fim do período pago"
+                  } e depois a conta volta para o plano Free.`
+                : "A conta passa a usar o plano Free agora, sem nenhuma cobrança."}
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>O Free permite 1 usuário e 1 projeto ativo. Nada é apagado: usuários e projetos que já existem continuam, mas não dá para criar novos além do limite.</li>
+            <li>Você pode voltar para o PRO quando quiser, pela tela de Assinatura.</li>
+          </ul>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirmarCancelamento(false)}>
+              {proAtivo ? "Manter o PRO" : "Voltar"}
+            </Button>
+            <Button variant="destructive" onClick={() => cancelarMutation.mutate()} disabled={cancelarMutation.isPending}>
+              {cancelarMutation.isPending ? "Cancelando..." : proAtivo ? "Cancelar o PRO" : "Usar o plano Free"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={fecharDialog}>
         <DialogContent>
