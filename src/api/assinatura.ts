@@ -1,7 +1,8 @@
 import { api } from "@/lib/api";
 
 export type AssinaturaStatus = "sem_assinatura" | "ativa" | "atrasada" | "cancelada";
-export type FormaPagamento = "cartao" | "pix";
+/** `cupom`: mensalidade coberta 100% por cupom, sem PIX nem cartão. */
+export type FormaPagamento = "cartao" | "pix" | "cupom";
 export type FaturaStatus = "pendente" | "paga" | "falhou" | "expirada";
 
 export interface Assinatura {
@@ -56,10 +57,12 @@ export type CupomTipo = "valor_fixo" | "percentual";
 export interface CupomAtivo {
   codigo: string;
   tipo: CupomTipo;
-  /** valor_fixo: centavos; percentual: 1 a 99. */
+  /** valor_fixo: centavos; percentual: 1 a 100. */
   valor: number;
   /** `null` = para sempre. */
   usosRestantes: number | null;
+  /** Cobre a mensalidade inteira (100%) — o PRO é ativado sem PIX nem cartão. */
+  cobreMensalidadeInteira: boolean;
 }
 
 export interface CupomPreview {
@@ -78,6 +81,7 @@ export const assinaturaApi = {
   checkoutCartao: (cardToken: string, cupom?: string) => api.post<Assinatura>("/assinatura/cartao", { cardToken, cupom }),
   /** `cupom`: cupom novo nesta cobrança; `usarCupom`: usar o cupom já em uso nesta renovação. */
   gerarPix: (opcoes: { cupom?: string; usarCupom?: boolean } = {}) => api.post<Fatura>("/assinatura/pix", opcoes),
+  ativarComCupom: (cupom?: string) => api.post<AssinaturaComFaturas>("/assinatura/cupom/ativar", { cupom }),
   validarCupom: (codigo: string) => api.post<CupomPreview>("/assinatura/cupom/validar", { codigo }),
   cancelarPro: () => api.post<AssinaturaComFaturas>("/assinatura/cancelar"),
   verificarFatura: (id: number) => api.post<Fatura>(`/assinatura/faturas/${id}/verificar`),

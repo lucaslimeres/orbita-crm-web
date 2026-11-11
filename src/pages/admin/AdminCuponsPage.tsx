@@ -57,7 +57,7 @@ function paraInput(form: CupomForm): CupomAdminInput | null {
   if (!/^[A-Z0-9_-]{3,40}$/.test(form.codigo)) return erro("Código: de 3 a 40 letras, números, hífen ou sublinhado.");
   const valor = form.tipo === "valor_fixo" ? reaisParaCentavos(form.valor) : Number(form.valor);
   if (!Number.isInteger(valor) || valor <= 0) return erro("Informe o valor do desconto.");
-  if (form.tipo === "percentual" && valor > 99) return erro("O desconto percentual deve ser de 1% a 99%.");
+  if (form.tipo === "percentual" && valor > 100) return erro("O desconto percentual deve ser de 1% a 100%.");
   const duracaoUsos = form.paraSempre ? null : Number(form.duracaoUsos);
   if (duracaoUsos !== null && (!Number.isInteger(duracaoUsos) || duracaoUsos < 1)) return erro("A quantidade de usos deve ser pelo menos 1.");
   const limiteClientes = form.limiteClientes.trim() ? Number(form.limiteClientes) : null;

@@ -54,7 +54,7 @@ export interface AdminProjeto {
 export interface AdminAssinatura {
   plano: string;
   valorCentavos: number;
-  formaPagamento: "cartao" | "pix" | null;
+  formaPagamento: "cartao" | "pix" | "cupom" | null;
   status: string;
   cartaoFinal: string | null;
   cartaoBandeira: string | null;
@@ -66,7 +66,7 @@ export interface AdminFatura {
   id: number;
   competencia: string;
   valorCentavos: number;
-  formaPagamento: "cartao" | "pix";
+  formaPagamento: "cartao" | "pix" | "cupom";
   status: string;
   pagoEm: string | null;
   createdAt: string;
@@ -86,7 +86,7 @@ export interface FaturaComEmpresa {
   empresaNome: string;
   competencia: string;
   valorCentavos: number;
-  formaPagamento: "cartao" | "pix";
+  formaPagamento: "cartao" | "pix" | "cupom";
   status: string;
   pagoEm: string | null;
   createdAt: string;
