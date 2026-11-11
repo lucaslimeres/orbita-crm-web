@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
-import { agruparMensalidades } from "@/lib/mensalidades";
+import { agruparMensalidades, ordenarRecentes } from "@/lib/mensalidades";
 import { AcoesRecorrente, EncerrarRecorrenciaDialog, NovaMensalidadeDialog, ResumoRecorrente } from "./mensalidades";
 import { CategoriasDialog } from "./CategoriasDialog";
 
@@ -555,9 +555,4 @@ function CamposGasto({
       </div>
     </>
   );
-}
-
-/** Mais recente primeiro (data; empate: o lançado por último). */
-function ordenarRecentes<T extends { id: number; dataInicio: string }>(itens: T[], data: (i: T) => string = (i) => i.dataInicio): T[] {
-  return [...itens].sort((a, b) => data(b).slice(0, 10).localeCompare(data(a).slice(0, 10)) || b.id - a.id);
 }

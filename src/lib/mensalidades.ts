@@ -12,3 +12,8 @@ export function agruparMensalidades<T extends { id: number; recorrenteOrigemId: 
   const topo = itens.filter((i) => !i.recorrenteOrigemId || !ids.has(i.recorrenteOrigemId));
   return { topo, mensalidadesDe: (id: number) => porSerie.get(id) ?? [] };
 }
+
+/** Mais recente primeiro (data; empate: o lançado por último). */
+export function ordenarRecentes<T extends { id: number; dataInicio: string }>(itens: T[], data: (i: T) => string = (i) => i.dataInicio): T[] {
+  return [...itens].sort((a, b) => data(b).slice(0, 10).localeCompare(data(a).slice(0, 10)) || b.id - a.id);
+}
