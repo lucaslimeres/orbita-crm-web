@@ -17,6 +17,27 @@ export interface Gasto {
   proximaOcorrencia: string | null;
   status: "pago" | "pendente";
   anexoUrl: string | null;
+  /** Mensalidade de um gasto recorrente: id do gasto principal (série). */
+  recorrenteOrigemId: number | null;
+  /** Só no gasto recorrente principal: resumo das mensalidades. */
+  serie: ResumoSerie | null;
+}
+
+/** Resumo de um gasto/receita recorrente — calculado pela API (ver docs/financeiro.md). */
+export interface ResumoSerie {
+  /** Mensalidades lançadas, contando a primeira (o próprio recorrente). */
+  quantidade: number;
+  ultima: { data: string; valorCentavos: number };
+  /** Tem data de encerramento (`dataFim`). */
+  encerrada: boolean;
+  /** Pré-preenchimento de "Adicionar mensalidade"; `null` se cair depois do encerramento. */
+  sugestao: { data: string; valorCentavos: number } | null;
+}
+
+/** "Adicionar mensalidade": tudo opcional — sem valor/data, a API usa a sugestão; status pela data. */
+export interface NovaMensalidadeRequest {
+  valorCentavos?: number;
+  data?: string;
 }
 
 export interface CreateGastoRequest {
@@ -29,6 +50,8 @@ export interface CreateGastoRequest {
   recorrencia: Recorrencia;
   dataInicio: string;
   status?: "pago" | "pendente";
+  /** Encerrar a recorrência nesta data (`null` reabre). */
+  dataFim?: string | null;
 }
 
 export interface Aporte {
@@ -83,6 +106,7 @@ export const financeiroApi = {
   createGasto: (data: CreateGastoRequest) => api.post<{ id: number }>("/financeiro/gastos", data),
   updateGasto: (id: number, data: Partial<CreateGastoRequest>) => api.patch<void>(`/financeiro/gastos/${id}`, data),
   deleteGasto: (id: number) => api.delete<void>(`/financeiro/gastos/${id}`),
+  addMensalidadeGasto: (id: number, data: NovaMensalidadeRequest) => api.post<Gasto>(`/financeiro/gastos/${id}/mensalidades`, data),
 
   listAportes: () => api.get<Aporte[]>("/financeiro/aportes"),
   createAporte: (data: CreateAporteRequest) => api.post<{ id: number }>("/financeiro/aportes", data),

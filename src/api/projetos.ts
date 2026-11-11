@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { CreateGastoRequest, Gasto } from "@/api/financeiro";
+import type { CreateGastoRequest, Gasto, NovaMensalidadeRequest, ResumoSerie } from "@/api/financeiro";
 import type { Recorrencia } from "./financeiro";
 
 export type ProjetoStatus = "em_desenvolvimento" | "em_producao" | "pausado" | "encerrado";
@@ -39,23 +39,28 @@ export interface ProjetoDashboard {
 export interface Receita {
   id: number;
   projetoId: number;
-  clienteNome: string;
+  /** Legado — receitas novas usam só a descrição. */
+  clienteNome: string | null;
   tipo: "pagamento_unico" | "mensalidade";
   valorCentavos: number;
   recorrencia: Recorrencia | null;
   dataInicio: string;
+  dataFim: string | null;
+  proximaOcorrencia: string | null;
   status: "recebido" | "pendente" | "atrasado";
   descricao: string | null;
+  /** Mensalidade de uma receita recorrente: id da receita principal. */
+  recorrenteOrigemId: number | null;
+  serie: ResumoSerie | null;
 }
 
+/** Sem `status`: a API decide pela data (até hoje = recebido; futura = pendente). */
 export interface CreateReceitaRequest {
-  clienteNome: string;
+  descricao: string;
   tipo: "pagamento_unico" | "mensalidade";
   valorCentavos: number;
   recorrencia?: Recorrencia | null;
   dataInicio: string;
-  status?: "recebido" | "pendente" | "atrasado";
-  descricao?: string | null;
 }
 
 export const projetosApi = {
@@ -68,8 +73,10 @@ export const projetosApi = {
 
   listReceitas: (id: number) => api.get<Receita[]>(`/projetos/${id}/receitas`),
   createReceita: (id: number, data: CreateReceitaRequest) => api.post<Receita>(`/projetos/${id}/receitas`, data),
-  updateReceita: (receitaId: number, data: { status?: string; descricao?: string | null }) =>
+  updateReceita: (receitaId: number, data: { status?: string; descricao?: string | null; dataFim?: string | null }) =>
     api.patch<void>(`/projetos/receitas/${receitaId}`, data),
+  addMensalidadeReceita: (id: number, receitaId: number, data: NovaMensalidadeRequest) =>
+    api.post<Receita>(`/projetos/${id}/receitas/${receitaId}/mensalidades`, data),
   deleteReceita: (receitaId: number) => api.delete<void>(`/projetos/receitas/${receitaId}`),
 
   // Gastos do projeto: mesma tabela dos gastos da empresa, rotas com o projeto na URL
@@ -79,4 +86,6 @@ export const projetosApi = {
   updateGasto: (id: number, gastoId: number, data: Partial<Omit<CreateGastoRequest, "projetoId">>) =>
     api.patch<void>(`/projetos/${id}/gastos/${gastoId}`, data),
   deleteGasto: (id: number, gastoId: number) => api.delete<void>(`/projetos/${id}/gastos/${gastoId}`),
+  addMensalidadeGasto: (id: number, gastoId: number, data: NovaMensalidadeRequest) =>
+    api.post<Gasto>(`/projetos/${id}/gastos/${gastoId}/mensalidades`, data),
 };
