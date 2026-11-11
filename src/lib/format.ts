@@ -53,3 +53,8 @@ export function rotuloMes(mes: string): string {
   const [ano, m] = mes.split("-");
   return `${MESES_CURTOS[Number(m) - 1]}/${ano.slice(2)}`;
 }
+
+/** Rótulo da forma de pagamento de uma assinatura/fatura. */
+export function rotuloFormaPagamento(forma: string | null): string {
+  return forma === "cartao" ? "Cartão" : forma === "pix" ? "PIX" : forma === "cupom" ? "Cupom 100%" : "—";
+}

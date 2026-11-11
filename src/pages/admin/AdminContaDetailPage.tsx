@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { adminPanelApi, type AdminProjeto } from "@/api/admin";
 import { AdminApiError } from "@/lib/adminApi";
-import { formatDateOnly, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney, rotuloFormaPagamento } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
@@ -192,7 +192,7 @@ export function AdminContaDetailPage() {
               {faturas.map((fatura) => (
                 <TableRow key={fatura.id}>
                   <TableCell className="font-numeric">{fatura.competencia}</TableCell>
-                  <TableCell>{fatura.formaPagamento === "cartao" ? "Cartão" : "PIX"}</TableCell>
+                  <TableCell>{rotuloFormaPagamento(fatura.formaPagamento)}</TableCell>
                   <TableCell>
                     <Badge variant={fatura.status === "paga" ? "positive" : fatura.status === "falhou" ? "negative" : "warning"}>{fatura.status}</Badge>
                   </TableCell>

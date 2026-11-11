@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { adminPanelApi } from "@/api/admin";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, rotuloFormaPagamento } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
@@ -112,7 +112,7 @@ export function AdminFinanceiroPage() {
                   </Link>
                 </TableCell>
                 <TableCell className="font-numeric">{fatura.competencia}</TableCell>
-                <TableCell>{fatura.formaPagamento === "cartao" ? "Cartão" : "PIX"}</TableCell>
+                <TableCell>{rotuloFormaPagamento(fatura.formaPagamento)}</TableCell>
                 <TableCell>
                   <Badge variant={fatura.status === "paga" ? "positive" : fatura.status === "falhou" ? "negative" : "warning"}>{fatura.status}</Badge>
                 </TableCell>
