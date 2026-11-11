@@ -9,7 +9,7 @@ import { tokenizeCard } from "@/lib/pagarme";
 import { limparNomeCartao, mascararNumeroCartao, soDigitos, validarCartao } from "@/lib/cartao";
 import { useAssinaturaSocket } from "@/lib/ws";
 import { ApiError } from "@/lib/api";
-import { formatDateOnly, formatDescontoCupom, formatDuracaoCupom, formatMoney } from "@/lib/format";
+import { formatDateOnly, formatDescontoCupom, formatDuracaoCupom, formatMoney, rotuloFormaPagamento } from "@/lib/format";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,6 +122,20 @@ export function AssinaturaPage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Não foi possível cadastrar o cartão."),
   });
 
+  // Cupom de 100%: ativa o PRO sem PIX nem cartão (cupom novo digitado no modal, ou o que
+  // já está em uso). Ver docs/assinatura.md ("Cupom de 100%").
+  const ativarComCupomMutation = useMutation({
+    mutationFn: (codigo?: string) => assinaturaApi.ativarComCupom(codigo),
+    onSuccess: (result) => {
+      queryClient.setQueryData(["assinatura"], result);
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      fecharDialog(false);
+      toast.success("Plano PRO ativado com o cupom!");
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível ativar o PRO com o cupom."),
+  });
+
   const gerarPixMutation = useMutation({
     mutationFn: () => assinaturaApi.gerarPix({ cupom: cupomAplicado?.codigo, usarCupom }),
     onSuccess: () => {
@@ -167,6 +181,8 @@ export function AssinaturaPage() {
   // Plano cru "pro" mas não pago/em dia (sem_assinatura, atrasada, cancelada) — o card de
   // pagamento fala em ativar/regularizar o PRO em vez de "fazer upgrade".
   const escolheuPro = assinatura.plano === "pro";
+  // Cupom que zera a mensalidade: o novo digitado no modal (prévia da API) ou o que já está em uso.
+  const cupom100 = cupomAplicado ? cupomAplicado.valorComDescontoCentavos === 0 : !!cupom?.cobreMensalidadeInteira;
   const emRiscoDeSuspensao = assinatura.tentativasFalhaCartao > 0 && !bloqueada && assinatura.status === "ativa";
   // Cancelado pelo cliente, mas ainda dentro do período pago: PRO até `proximaCobranca`.
   const proCancelado = planoEfetivo === "pro" && assinatura.status === "cancelada";
@@ -234,6 +250,11 @@ export function AssinaturaPage() {
                     <CreditCard className="size-3.5" />
                     {assinatura.cartaoFinal ? `${assinatura.cartaoBandeira ?? ""} •••• ${assinatura.cartaoFinal}` : "Cartão"}
                   </>
+                ) : assinatura.formaPagamento === "cupom" ? (
+                  <>
+                    <TicketPercent className="size-3.5" />
+                    Cupom 100%
+                  </>
                 ) : (
                   <>
                     <QrCode className="size-3.5" />
@@ -243,7 +264,12 @@ export function AssinaturaPage() {
               </span>
             )}
             {proAtivo && assinatura.proximaCobranca && (
-              <span className="text-xs text-muted-foreground">Próxima cobrança: {formatDateOnly(assinatura.proximaCobranca)}</span>
+              <span className="text-xs text-muted-foreground">
+                {assinatura.formaPagamento === "cupom" ? "Coberto pelo cupom até" : "Próxima cobrança:"} {formatDateOnly(assinatura.proximaCobranca)}
+              </span>
+            )}
+            {proAtivo && !assinatura.proximaCobranca && assinatura.formaPagamento === "cupom" && (
+              <span className="text-xs text-muted-foreground">Sem cobrança enquanto o cupom valer</span>
             )}
             {proCancelado && assinatura.proximaCobranca && (
               <span className="text-xs text-muted-foreground">PRO até {formatDateOnly(assinatura.proximaCobranca)}</span>
@@ -450,7 +476,19 @@ export function AssinaturaPage() {
             </form>
           )}
 
-          {metodo === null && (
+          {metodo === null && cupom100 && (
+            <div className="flex flex-col gap-3 rounded-md border border-primary/40 bg-primary/5 p-4">
+              <p className="text-sm">
+                <strong>{textoMesesGratis(cupomAplicado ? cupomAplicado.duracaoUsos : (cupom?.usosRestantes ?? null), !!cupomAplicado)}</strong> com este
+                cupom. Não é preciso PIX nem cartão.
+              </p>
+              <Button onClick={() => ativarComCupomMutation.mutate(cupomAplicado?.codigo)} disabled={ativarComCupomMutation.isPending}>
+                {ativarComCupomMutation.isPending ? "Ativando..." : "Ativar o PRO com o cupom"}
+              </Button>
+            </div>
+          )}
+
+          {metodo === null && !cupom100 && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
@@ -545,9 +583,14 @@ export function AssinaturaPage() {
                   />
                 </div>
               </div>
-              <Button type="submit" disabled={checkoutCartaoMutation.isPending}>
-                {checkoutCartaoMutation.isPending ? "Processando..." : "Confirmar cartão"}
-              </Button>
+              <div className="flex justify-between gap-2">
+                <Button type="button" variant="ghost" onClick={() => setMetodo(null)} disabled={checkoutCartaoMutation.isPending}>
+                  Voltar
+                </Button>
+                <Button type="submit" disabled={checkoutCartaoMutation.isPending}>
+                  {checkoutCartaoMutation.isPending ? "Processando..." : "Confirmar cartão"}
+                </Button>
+              </div>
             </form>
           )}
         </DialogContent>
@@ -577,7 +620,7 @@ export function AssinaturaPage() {
               {faturas.map((fatura) => (
                 <TableRow key={fatura.id}>
                   <TableCell className="font-numeric">{fatura.competencia}</TableCell>
-                  <TableCell>{fatura.formaPagamento === "cartao" ? "Cartão" : "PIX"}</TableCell>
+                  <TableCell>{rotuloFormaPagamento(fatura.formaPagamento)}</TableCell>
                   <TableCell>
                     <Badge variant={fatura.status === "paga" ? "positive" : fatura.status === "falhou" ? "negative" : "warning"}>{fatura.status}</Badge>
                   </TableCell>
@@ -593,4 +636,11 @@ export function AssinaturaPage() {
       </section>
     </div>
   );
+}
+
+/** "A primeira mensalidade sai de graça" / "As próximas 3 mensalidades saem de graça" / "Todas as mensalidades saem de graça". */
+function textoMesesGratis(meses: number | null, novo: boolean): string {
+  if (meses === null) return "Todas as mensalidades saem de graça";
+  const quais = novo ? "primeira" : "próxima";
+  return meses === 1 ? `A ${quais} mensalidade sai de graça` : `As ${quais}s ${meses} mensalidades saem de graça`;
 }

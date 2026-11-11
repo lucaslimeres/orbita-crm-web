@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, FolderKanban, QrCode, TrendingUp, Users, Wallet } from "lucide-react";
+import { CreditCard, FolderKanban, QrCode, TrendingUp, Users, Wallet, TicketPercent } from "lucide-react";
 import { adminPanelApi } from "@/api/admin";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, rotuloFormaPagamento } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -75,8 +75,14 @@ export function AdminDashboardPage() {
               {data.faturasPagasPorFormaPagamento.map((f) => (
                 <div key={f.formaPagamento} className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2">
-                    {f.formaPagamento === "cartao" ? <CreditCard className="size-4 text-muted-foreground" /> : <QrCode className="size-4 text-muted-foreground" />}
-                    {f.formaPagamento === "cartao" ? "Cartão" : "PIX"} · {f.total} fatura{f.total === 1 ? "" : "s"}
+                    {f.formaPagamento === "cartao" ? (
+                      <CreditCard className="size-4 text-muted-foreground" />
+                    ) : f.formaPagamento === "cupom" ? (
+                      <TicketPercent className="size-4 text-muted-foreground" />
+                    ) : (
+                      <QrCode className="size-4 text-muted-foreground" />
+                    )}
+                    {rotuloFormaPagamento(f.formaPagamento)} · {f.total} fatura{f.total === 1 ? "" : "s"}
                   </span>
                   <span className="font-numeric">{formatMoney(f.valorCentavos)}</span>
                 </div>
