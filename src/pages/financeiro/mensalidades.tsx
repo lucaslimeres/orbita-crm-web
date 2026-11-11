@@ -27,14 +27,12 @@ export function ResumoRecorrente({
   onAlternar: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onAlternar}
-      className="mt-0.5 flex items-center gap-1 text-left text-xs text-muted-foreground hover:text-foreground"
-    >
-      {aberto ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-      {serie.quantidade} mensalidade{serie.quantidade === 1 ? "" : "s"} · última {formatDateOnly(serie.ultima.data)} (
-      {formatMoney(serie.ultima.valorCentavos)}){dataFim && <span className="text-warning"> · encerrada em {formatDateOnly(dataFim)}</span>}
+    <button type="button" onClick={onAlternar} className="mt-0.5 flex items-start gap-1 text-left text-xs text-muted-foreground hover:text-foreground">
+      {aberto ? <ChevronDown className="mt-px size-3.5 shrink-0" /> : <ChevronRight className="mt-px size-3.5 shrink-0" />}
+      <span>
+        {serie.quantidade} mensalidade{serie.quantidade === 1 ? "" : "s"} · última {formatDateOnly(serie.ultima.data)} ({formatMoney(serie.ultima.valorCentavos)})
+        {dataFim && <span className="text-warning"> · encerrada em {formatDateOnly(dataFim)}</span>}
+      </span>
     </button>
   );
 }
