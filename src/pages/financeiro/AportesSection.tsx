@@ -240,7 +240,7 @@ function CamposAporte({
           inputMode="decimal"
           placeholder="0,00"
           value={form.valorReais}
-          onChange={(e) => setForm((f) => ({ ...f, valorReais: e.target.value }))}
+          onChange={(e) => setForm((f) => ({ ...f, valorReais: e.target.value.replace(/[^\d.,]/g, "") }))}
         />
       </div>
       <div className="flex flex-col gap-1.5">
