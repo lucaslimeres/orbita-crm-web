@@ -236,7 +236,10 @@ export function ColunasAgrupadas<T extends { mes: string }>({
   const barraW = Math.max(Math.min(24, (banda * 0.7 - gap * (series.length - 1)) / series.length), 2);
   const grupoW = barraW * series.length + gap * (series.length - 1);
   const y = (v: number) => MARGEM.topo + areaH - (v / topo) * areaH;
-  const mostrarRotulo = (i: number) => banda >= 44 || i % 2 === dados.length % 2 || i === dados.length - 1;
+  // Rótulo do mês a cada `passo` colunas, contando do último mês para trás (ele sempre aparece),
+  // para não encavalar em telas estreitas (celular).
+  const passo = Math.max(1, Math.ceil(44 / Math.max(banda, 1)));
+  const mostrarRotulo = (i: number) => (dados.length - 1 - i) % passo === 0;
 
   const info: TooltipInfo | null =
     hover === null

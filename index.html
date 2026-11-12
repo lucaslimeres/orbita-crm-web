@@ -17,7 +17,19 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32-dark.png" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16-dark.png" media="(prefers-color-scheme: dark)" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: no celular o app usa a tela toda e respeita notch/barra de gestos via env(safe-area-inset-*). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!--
+      Instalável como app ("Adicionar à tela inicial"): manifest para Android/Chrome e metas
+      da Apple para iPhone/Safari. Abre em tela cheia (standalone), sem a barra do navegador.
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Órbita" />
     <title>Órbita</title>
   </head>
   <body>

@@ -32,6 +32,15 @@ Estrutura:
   fixo). Nunca misturar imports/estado entre essa área e o resto do app. Ver
   `../docs/admin.md`.
 
+**Responsivo / versão mobile** (2026-11-12): abaixo de `md` (768px) o `AppLayout` (e o
+`AdminLayout`) troca a barra lateral por barra no topo + navegação fixa embaixo, com
+`env(safe-area-inset-*)`; os modais (`components/ui/dialog.tsx`) viram "bottom sheet";
+toda `<Table>` vira lista de cartões abaixo de 1024px (rótulos lidos do `<th>`, CSS
+`.tabela-cartoes` em `index.css` — `cartoes={false}` desliga). É instalável como app
+(`public/manifest.webmanifest` + metas da Apple no `index.html`). Tela nova: usar esses
+componentes e grids com breakpoint (`grid-cols-1 sm:…`), sem largura fixa — e conferir
+sem rolagem lateral a partir de 360px.
+
 **v1 usa `useState` + validação manual nos formulários, não React Hook Form/Zod** — os
 forms são simples o bastante (poucos campos, sem validação cruzada) que a abstração não
 se pagou ainda. Se um formulário crescer em complexidade, aí sim vale introduzir RHF+Zod

@@ -110,3 +110,58 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/*
+ * Tabelas no celular e no tablet (< 1024px) viram cartões (ver components/ui/table.tsx): o cabeçalho some e cada
+ * célula mostra o rótulo da coluna (data-label) à esquerda e o valor à direita. Fora de
+ * @layer de propósito, para valer sobre os utilitários de padding/alinhamento das células.
+ */
+@media (max-width: 1023.98px) {
+  .tabela-cartoes,
+  .tabela-cartoes tbody {
+    display: block;
+  }
+  .tabela-cartoes thead {
+    display: none;
+  }
+  .tabela-cartoes tr {
+    display: block;
+    padding: 0.75rem 1rem;
+  }
+  .tabela-cartoes td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.25rem 0;
+    min-height: 2rem;
+    text-align: right;
+  }
+  .tabela-cartoes td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: left;
+  }
+  .tabela-cartoes td[data-label=""]::before,
+  .tabela-cartoes td:not([data-label])::before {
+    content: none;
+  }
+  /* Célula sem rótulo (coluna de ações): botões alinhados à direita, quebrando linha se precisar. */
+  .tabela-cartoes td[data-label=""] {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .tabela-cartoes td[data-label=""] > * {
+    flex-wrap: wrap;
+  }
+  .tabela-cartoes td:empty {
+    display: none;
+  }
+  /* Linha inteira (estado vazio, "Carregando..."): centralizada. */
+  .tabela-cartoes td[data-linha-inteira] {
+    justify-content: center;
+    text-align: center;
+  }
+}
