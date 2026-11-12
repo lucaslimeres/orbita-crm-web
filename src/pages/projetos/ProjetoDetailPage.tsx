@@ -59,7 +59,7 @@ export function ProjetoDetailPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
         <Card>
           <CardContent className="pt-5">
             <CardDescription>Receita total</CardDescription>

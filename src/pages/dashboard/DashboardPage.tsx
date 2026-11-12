@@ -221,7 +221,7 @@ function Indicadores({ data, periodo }: { data: Awaited<ReturnType<typeof dashbo
         <Card key={t.rotulo}>
           <CardContent className="pt-5">
             <CardDescription>{t.rotulo}</CardDescription>
-            <CardTitle className={cn("mt-1 font-numeric text-2xl", t.sinal && t.valor < 0 && "text-negative")}>{formatMoney(t.valor)}</CardTitle>
+            <CardTitle className={cn("mt-1 font-numeric text-lg break-words sm:text-2xl", t.sinal && t.valor < 0 && "text-negative")}>{formatMoney(t.valor)}</CardTitle>
             {t.nota && <p className="mt-0.5 text-xs text-muted-foreground">{t.nota}</p>}
           </CardContent>
         </Card>

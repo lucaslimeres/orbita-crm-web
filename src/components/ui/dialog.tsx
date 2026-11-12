@@ -13,7 +13,12 @@ export function DialogContent({ className, children, ...props }: React.Component
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
       <DialogPrimitive.Content
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-lg outline-none",
+          // Desktop: centralizado. Celular: "bottom sheet" — encosta embaixo, largura total,
+          // cantos de cima arredondados, rola se o conteúdo passar da tela e respeita a área
+          // segura (barra de gestos).
+          "fixed z-50 flex flex-col gap-4 border border-border bg-card shadow-lg outline-none",
+          "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
+          "md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-h-[calc(100dvh-2rem)] md:w-[calc(100%-2rem)] md:max-w-md md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:p-6",
           className,
         )}
         {...props}
