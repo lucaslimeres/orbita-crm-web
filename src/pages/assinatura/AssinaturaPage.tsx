@@ -5,6 +5,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { assinaturaApi, type CupomPreview } from "@/api/assinatura";
+import { authApi } from "@/api/auth";
 import { tokenizeCard } from "@/lib/pagarme";
 import { limparNomeCartao, mascararNumeroCartao, soDigitos, validarCartao } from "@/lib/cartao";
 import { useAssinaturaSocket } from "@/lib/ws";
@@ -45,7 +46,12 @@ export function AssinaturaPage() {
   const [metodo, setMetodo] = useState<"cartao" | "pix" | null>(null);
   const [cardForm, setCardForm] = useState({ number: "", holderName: "", expMonth: "", expYear: "", cvv: "" });
 
-  const { data, isLoading } = useQuery({ queryKey: ["assinatura"], queryFn: () => assinaturaApi.status() });
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => authApi.me(), staleTime: 30_000 });
+  // Sem `assinatura.view` a API responde 403 — não adianta buscar (nem ficar em "Carregando...").
+  const podeVer = !me || me.permissoes.includes("assinatura.view");
+  // Ações (pagar, trocar cartão, cancelar) só para `assinatura.manage` — cosmético, a API confere.
+  const podeGerenciar = !!me?.permissoes.includes("assinatura.manage");
+  const { data, isLoading, isError } = useQuery({ queryKey: ["assinatura"], queryFn: () => assinaturaApi.status(), enabled: podeVer });
 
   // Mantém a sessão em sincronia — é o que o AppLayout/VerifyEmailCodePage usam pra
   // decidir redirecionamento sem precisar buscar de novo.
@@ -114,10 +120,12 @@ export function AssinaturaPage() {
       return assinaturaApi.checkoutCartao(cardToken, cupomAplicado?.codigo);
     },
     onSuccess: () => {
+      // PRO ativo no cartão: a API só troca o cartão (mesmo ciclo, nada cobrado agora).
+      const troca = data?.planoEfetivo === "pro" && data.assinatura.status === "ativa" && data.assinatura.formaPagamento === "cartao";
       queryClient.invalidateQueries({ queryKey: ["assinatura"] });
       fecharDialog(false);
       setCardForm({ number: "", holderName: "", expMonth: "", expYear: "", cvv: "" });
-      toast.success("Cartão cadastrado! A cobrança recorrente já foi ativada.");
+      toast.success(troca ? "Cartão trocado! O vencimento continua o mesmo." : "Cartão cadastrado! A cobrança recorrente já foi ativada.");
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Não foi possível cadastrar o cartão."),
   });
@@ -173,6 +181,26 @@ export function AssinaturaPage() {
     },
   });
 
+  if (!podeVer || isError) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-2xl font-semibold tracking-[-0.02em]">Assinatura</h1>
+        <Card>
+          <CardContent className="flex items-start gap-3 pt-5">
+            <AlertTriangle className="size-5 shrink-0 text-warning" />
+            <p className="text-sm text-muted-foreground">
+              {me?.assinatura.bloqueada
+                ? "A assinatura do Órbita está vencida e o sistema fica bloqueado até o pagamento ser regularizado. Peça ao responsável pela conta para regularizar."
+                : isError && podeVer
+                  ? "Não foi possível carregar a assinatura. Tente novamente em instantes."
+                  : "Você não tem acesso à assinatura do Órbita. Fale com o responsável pela conta."}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">Carregando...</p>;
 
   const { assinatura, faturas, planoEfetivo, bloqueada, limites, cupom } = data;
@@ -222,9 +250,11 @@ export function AssinaturaPage() {
                 cartão para evitar a suspensão do acesso.
               </p>
             </div>
-            <Button size="sm" onClick={() => abrirDialog("cartao")}>
-              Trocar cartão
-            </Button>
+            {podeGerenciar && (
+              <Button size="sm" onClick={() => abrirDialog("cartao")}>
+                Trocar cartão
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -295,7 +325,7 @@ export function AssinaturaPage() {
                 {limites.projetos.atual}/{limites.projetos.maximo} projeto{(limites.projetos.maximo ?? 0) > 1 ? "s" : ""}
               </p>
             </div>
-            <Button onClick={() => abrirDialog()}>Fazer upgrade para o PRO</Button>
+            {podeGerenciar && <Button onClick={() => abrirDialog()}>Fazer upgrade para o PRO</Button>}
           </CardContent>
         </Card>
       )}
@@ -324,7 +354,7 @@ export function AssinaturaPage() {
             </div>
           </CardContent>
         </Card>
-      ) : precisaPagar && escolheuPro ? (
+      ) : !podeGerenciar ? null : precisaPagar && escolheuPro ? (
         // Free já tem seu próprio card com o botão de upgrade acima — este cobre
         // sem_assinatura (PRO escolhido no cadastro mas não pago) / atrasada / cancelada.
         <Card className={proPendente ? "border-primary/40 bg-primary/5" : undefined}>

@@ -24,6 +24,8 @@ export interface MeResponse {
   usuario: AuthUsuario;
   empresa: AuthEmpresa;
   assinatura: AuthAssinatura;
+  /** Permissões efetivas calculadas pela API (Owner = todas). Só para esconder o que não cabe na UI. */
+  permissoes: string[];
 }
 
 export const authApi = {
