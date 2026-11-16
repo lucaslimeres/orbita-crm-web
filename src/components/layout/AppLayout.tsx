@@ -53,6 +53,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }
 
   const bloqueada = assinatura?.bloqueada ?? false;
+  // Aba Assinatura só para quem tem `assinatura.view` (cosmético — a API recusa de qualquer jeito).
+  const navItems = NAV_ITEMS.filter((item) => item.to !== "/assinatura" || !me || me.permissoes.includes("assinatura.view"));
   const logo = theme === "light" ? logoCor : logoBranco;
 
   // Atalhos de conta/tema/sair — na barra lateral (desktop) e na barra do topo (celular).
@@ -83,7 +85,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <img src={logo} alt="Órbita" className="mb-8 h-6 w-auto self-start" />
 
         <nav className="flex flex-1 flex-col gap-1">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -135,9 +137,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="Navegação principal"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+        className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.to}
             to={item.to}
