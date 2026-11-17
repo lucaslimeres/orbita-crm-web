@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { assinaturaApi, type CupomPreview } from "@/api/assinatura";
 import { authApi } from "@/api/auth";
 import { tokenizeCard } from "@/lib/pagarme";
-import { limparNomeCartao, mascararNumeroCartao, soDigitos, validarCartao } from "@/lib/cartao";
+import { limparNomeCartao, mascararNumeroCartao, soDigitos, tamanhoCvv, validarCartao } from "@/lib/cartao";
 import { useAssinaturaSocket } from "@/lib/ws";
 import { ApiError } from "@/lib/api";
 import { formatDateOnly, formatDescontoCupom, formatDuracaoCupom, formatMoney, rotuloFormaPagamento } from "@/lib/format";
@@ -120,12 +120,20 @@ export function AssinaturaPage() {
       return assinaturaApi.checkoutCartao(cardToken, cupomAplicado?.codigo);
     },
     onSuccess: () => {
-      // PRO ativo no cartão: a API só troca o cartão (mesmo ciclo, nada cobrado agora).
-      const troca = data?.planoEfetivo === "pro" && data.assinatura.status === "ativa" && data.assinatura.formaPagamento === "cartao";
+      // Período PRO já pago: a API não cobra agora nem muda o vencimento (só troca o cartão,
+      // ou agenda a 1ª cobrança no cartão para o vencimento atual).
+      const periodoPago = data?.planoEfetivo === "pro" && !!data.assinatura.proximaCobranca;
+      const troca = periodoPago && data.assinatura.status === "ativa" && data.assinatura.formaPagamento === "cartao";
       queryClient.invalidateQueries({ queryKey: ["assinatura"] });
       fecharDialog(false);
       setCardForm({ number: "", holderName: "", expMonth: "", expYear: "", cvv: "" });
-      toast.success(troca ? "Cartão trocado! O vencimento continua o mesmo." : "Cartão cadastrado! A cobrança recorrente já foi ativada.");
+      toast.success(
+        troca
+          ? "Cartão trocado! O vencimento continua o mesmo."
+          : periodoPago
+            ? `Cartão cadastrado! A primeira cobrança no cartão será no vencimento, em ${formatDateOnly(data.assinatura.proximaCobranca!)}.`
+            : "Cartão cadastrado! A cobrança recorrente já foi ativada.",
+      );
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Não foi possível cadastrar o cartão."),
   });
@@ -399,9 +407,10 @@ export function AssinaturaPage() {
       ) : (
         proAtivo && (
           <div className="flex flex-wrap gap-2">
-            {assinatura.formaPagamento === "cartao" && (
+            {/* PIX → cartão também mantém o vencimento: a 1ª cobrança no cartão fica para ele. */}
+            {(assinatura.formaPagamento === "cartao" || assinatura.formaPagamento === "pix") && (
               <Button variant="secondary" onClick={() => abrirDialog("cartao")}>
-                Trocar cartão
+                {assinatura.formaPagamento === "cartao" ? "Trocar cartão" : "Pagar com cartão"}
               </Button>
             )}
             <Button variant="ghost" className="text-muted-foreground" onClick={() => setConfirmarCancelamento(true)}>
@@ -561,7 +570,12 @@ export function AssinaturaPage() {
                   autoComplete="cc-number"
                   placeholder="0000 0000 0000 0000"
                   value={cardForm.number}
-                  onChange={(e) => setCardForm((f) => ({ ...f, number: mascararNumeroCartao(e.target.value) }))}
+                  onChange={(e) =>
+                    setCardForm((f) => {
+                      const number = mascararNumeroCartao(e.target.value);
+                      return { ...f, number, cvv: f.cvv.slice(0, tamanhoCvv(number)) };
+                    })
+                  }
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -606,10 +620,11 @@ export function AssinaturaPage() {
                     required
                     inputMode="numeric"
                     id="cartao-cvv"
-                  autoComplete="cc-csc"
-                    placeholder="000"
+                    autoComplete="cc-csc"
+                    placeholder={tamanhoCvv(cardForm.number) === 4 ? "0000" : "000"}
                     value={cardForm.cvv}
-                    onChange={(e) => setCardForm((f) => ({ ...f, cvv: soDigitos(e.target.value, 4) }))}
+                    maxLength={tamanhoCvv(cardForm.number)}
+                    onChange={(e) => setCardForm((f) => ({ ...f, cvv: soDigitos(e.target.value, tamanhoCvv(f.number)) }))}
                   />
                 </div>
               </div>
