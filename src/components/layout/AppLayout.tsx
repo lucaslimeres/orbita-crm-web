@@ -132,7 +132,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
             )}
           </div>
         )}
-        <main className="min-w-0 flex-1 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-8">{children}</main>
+        <main className="min-w-0 flex-1 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-8">
+          {me?.congelado ? (
+            // Plano Free acima do limite: só o Owner mais antigo segue usando (a API recusa o resto).
+            <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-4 rounded-lg border border-warning/30 bg-warning/10 p-6 text-center">
+              <AlertTriangle className="size-8 text-warning" />
+              <h1 className="text-lg font-semibold">Seu acesso está congelado</h1>
+              <p className="text-sm text-muted-foreground">
+                A conta da {empresa?.nomeFantasia || empresa?.razaoSocial || "empresa"} voltou ao plano Free, que permite 1 usuário. Seus dados continuam
+                guardados. Peça ao responsável pela conta para reativar o plano PRO e o acesso volta na hora.
+              </p>
+              <Button variant="secondary" onClick={handleLogout}>
+                Sair
+              </Button>
+            </div>
+          ) : (
+            children
+          )}
+        </main>
       </div>
 
       <nav
