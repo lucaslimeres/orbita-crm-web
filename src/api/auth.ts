@@ -26,6 +26,8 @@ export interface MeResponse {
   assinatura: AuthAssinatura;
   /** Permissões efetivas calculadas pela API (Owner = todas). Só para esconder o que não cabe na UI. */
   permissoes: string[];
+  /** Plano Free acima do limite: só o Owner mais antigo segue usando o sistema. */
+  congelado?: boolean;
 }
 
 export const authApi = {

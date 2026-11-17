@@ -137,7 +137,11 @@ export function UsuariosPage() {
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
                   <TableCell>{roles.find((r) => r.id === u.roleId)?.nome ?? "—"}</TableCell>
                   <TableCell>
-                    {!u.confirmado ? (
+                    {u.congelado ? (
+                      <Badge variant="warning" title="Plano Free: só 1 usuário entra. Volta ao normal ao reativar o PRO.">
+                        Congelado
+                      </Badge>
+                    ) : !u.confirmado ? (
                       <Badge variant="warning">Convidado</Badge>
                     ) : (
                       <Badge variant={u.ativo ? "positive" : "outline"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
