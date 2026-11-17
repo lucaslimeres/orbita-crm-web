@@ -16,6 +16,8 @@ export interface Projeto {
   status: ProjetoStatus;
   dataInicio: string;
   tipos: ProjetoTipo[];
+  /** Plano Free acima do limite: só leitura até ser escolhido como ativo ou voltar ao PRO (calculado pela API). */
+  congelado?: boolean;
 }
 
 export interface CreateProjetoRequest {
@@ -69,6 +71,8 @@ export const projetosApi = {
   create: (data: CreateProjetoRequest) => api.post<Projeto>("/projetos", data),
   update: (id: number, data: Partial<CreateProjetoRequest>) => api.patch<Projeto>(`/projetos/${id}`, data),
   remove: (id: number) => api.delete<void>(`/projetos/${id}`),
+  /** Free acima do limite: este passa a ser o projeto que aceita alterações. */
+  manterAtivo: (id: number) => api.post<void>(`/projetos/${id}/manter-ativo`),
   dashboard: (id: number) => api.get<ProjetoDashboard>(`/projetos/${id}/dashboard`),
 
   listReceitas: (id: number) => api.get<Receita[]>(`/projetos/${id}/receitas`),

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { projetosApi, type CreateProjetoRequest, type ProjetoTipo } from "@/api/projetos";
 import { usuariosApi } from "@/api/usuarios";
 import { assinaturaApi } from "@/api/assinatura";
+import { authApi } from "@/api/auth";
 import { ApiError } from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,18 @@ export function ProjetosPage() {
 
   const { data: projetos = [], isLoading } = useQuery({ queryKey: ["projetos"], queryFn: () => projetosApi.list() });
   const { data: usuarios = [] } = useQuery({ queryKey: ["usuarios"], queryFn: () => usuariosApi.list() });
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => authApi.me(), staleTime: 30_000 });
+  const podeGerenciar = !!me?.permissoes.includes("projetos.manage");
+  const temCongelados = projetos.some((p) => p.congelado);
+
+  const manterAtivoMutation = useMutation({
+    mutationFn: (id: number) => projetosApi.manterAtivo(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      toast.success("Pronto! Este é o projeto ativo do plano Free.");
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível trocar o projeto ativo."),
+  });
   const { data: assinaturaData } = useQuery({ queryKey: ["assinatura"], queryFn: () => assinaturaApi.status() });
 
   const limiteProjetos = assinaturaData?.limites.projetos;
@@ -114,6 +127,20 @@ export function ProjetosPage() {
           )}
         </div>
       </div>
+
+      {temCongelados && (
+        <Card className="border-warning/30 bg-warning/10">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
+            <p className="text-sm text-warning">
+              A conta está no plano Free, que permite 1 projeto ativo. Os projetos marcados como <strong>Congelado</strong> ficam só para consulta até você
+              reativar o PRO{podeGerenciar ? " — ou escolha qual projeto continua ativo." : "."} Nada foi apagado.
+            </p>
+            <Button asChild size="sm">
+              <Link to="/assinatura">Reativar o PRO</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {showForm && !limiteAtingido && (
         <Card>
@@ -194,7 +221,10 @@ export function ProjetosPage() {
               <CardContent className="flex flex-col gap-3 pt-5">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{projeto.nome}</h3>
-                  <Badge variant="outline">{STATUS_LABEL[projeto.status]}</Badge>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {projeto.congelado && <Badge variant="warning">Congelado</Badge>}
+                    <Badge variant="outline">{STATUS_LABEL[projeto.status]}</Badge>
+                  </div>
                 </div>
                 {projeto.descricao && <p className="line-clamp-2 text-sm text-muted-foreground">{projeto.descricao}</p>}
                 <div className="flex flex-wrap gap-1.5">
@@ -204,6 +234,24 @@ export function ProjetosPage() {
                     </Badge>
                   ))}
                 </div>
+                {projeto.congelado && podeGerenciar && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="self-start"
+                    disabled={manterAtivoMutation.isPending}
+                    onClick={(e) => {
+                      // O card inteiro é um link para o projeto.
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (window.confirm(`Manter "${projeto.nome}" como o projeto ativo? O projeto ativo atual passa a ficar congelado.`)) {
+                        manterAtivoMutation.mutate(projeto.id);
+                      }
+                    }}
+                  >
+                    Manter este ativo
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </Link>

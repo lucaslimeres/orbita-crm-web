@@ -59,6 +59,16 @@ export function ProjetoDetailPage() {
         </Button>
       </div>
 
+      {projeto.congelado && (
+        <Card className="border-warning/30 bg-warning/10">
+          <CardContent className="pt-5 text-sm text-warning">
+            <strong>Projeto congelado.</strong> A conta está no plano Free, que permite 1 projeto ativo: este fica só para consulta (não aceita
+            novas receitas, gastos nem edições) até ser escolhido como o projeto ativo, na tela de Projetos, ou até o PRO ser reativado. Nada foi
+            apagado.
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
         <Card>
           <CardContent className="pt-5">

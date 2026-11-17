@@ -16,9 +16,14 @@ export function limparNomeCartao(valor: string): string {
   return valor.replace(/[^A-Za-zÀ-ÿ\s]/g, "").replace(/\s{2,}/g, " ").toUpperCase().slice(0, 26);
 }
 
-/** Só dígitos, com limite de tamanho (mês/ano: 2, CVV: 4). */
+/** Só dígitos, com limite de tamanho (mês/ano: 2, CVV: 3, ou 4 no Amex). */
 export function soDigitos(valor: string, max: number): string {
   return valor.replace(/\D/g, "").slice(0, max);
+}
+
+/** CVV tem 3 dígitos; só American Express (número começa com 34 ou 37) usa 4. */
+export function tamanhoCvv(numero: string): 3 | 4 {
+  return /^3[47]/.test(numero.replace(/\D/g, "")) ? 4 : 3;
 }
 
 /** Dígito verificador do número do cartão (algoritmo de Luhn). */
@@ -61,6 +66,7 @@ export function validarCartao(cartao: CartaoForm, hoje: Date = new Date()): stri
   const mesAtual = hoje.getMonth() + 1;
   if (ano < anoAtual || (ano === anoAtual && mes < mesAtual)) return "Cartão vencido.";
 
-  if (cartao.cvv.length < 3) return "CVV inválido (3 ou 4 dígitos).";
+  const cvv = tamanhoCvv(numero);
+  if (cartao.cvv.length !== cvv) return `CVV inválido (${cvv} dígitos).`;
   return null;
 }
