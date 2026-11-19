@@ -46,6 +46,10 @@ forms são simples o bastante (poucos campos, sem validação cruzada) que a abs
 se pagou ainda. Se um formulário crescer em complexidade, aí sim vale introduzir RHF+Zod
 naquele form específico — não é preciso migrar tudo de uma vez.
 
+**Testes de tela** (2026-11-19): Playwright em `e2e/` (`yarn test:e2e`), celular (390px) e
+desktop (1400px), com a API simulada por `e2e/mock-api.ts` — ver `e2e/README.md`. Rodam no
+GitHub Actions em todo PR. Tela/fluxo novo ou bug corrigido no Web: incluir o teste do cenário.
+
 ## Regras específicas do Web
 
 - Nunca calcular saldo, totais financeiros ou permissão efetiva no cliente — sempre
