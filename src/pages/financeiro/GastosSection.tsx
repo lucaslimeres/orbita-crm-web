@@ -130,6 +130,7 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setForm(formVazio());
       toast.success("Gasto registrado.");
     },
@@ -141,6 +142,7 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setEditando(null);
       toast.success("Gasto atualizado.");
     },
@@ -152,6 +154,7 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Gasto marcado como pago.");
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível marcar o gasto como pago."),
@@ -196,6 +199,7 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Gasto excluído.");
     },
   });
@@ -285,11 +289,18 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
             {gasto.serie && (
               <AcoesRecorrente serie={gasto.serie} dataFim={gasto.dataFim} onAdicionar={() => setNovaMensalidade(gasto)} onEncerrar={() => setEncerrando(gasto)} />
             )}
+            {/* A linha mostra a última mensalidade — o lápis edita o que está à vista (valor, data,
+                status dela), que é o que a previsão e o "A pagar" usam. Categoria, descrição,
+                projeto e recorrência ficam no lápis da 1ª mensalidade, na lista expandida. */}
             <Button
               variant="ghost"
               size="icon"
-              title={gasto.serie ? "Editar gasto recorrente" : "Editar"}
-              onClick={() => setEditando({ id: gasto.id, form: formDoGasto(gasto), mensalidade: false })}
+              title={ultima.id !== gasto.id ? "Editar última mensalidade" : gasto.serie ? "Editar gasto recorrente" : "Editar"}
+              onClick={() =>
+                ultima.id !== gasto.id
+                  ? setEditando({ id: ultima.id, form: formDoGasto(ultima), mensalidade: true })
+                  : setEditando({ id: gasto.id, form: formDoGasto(gasto), mensalidade: false })
+              }
             >
               <Pencil className="size-4" />
             </Button>
@@ -316,7 +327,13 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
         <TableCell>
           <div className="flex items-center justify-end gap-1">
             {botaoMarcarPago(m)}
-            {/* A 1ª mensalidade é o próprio recorrente: edita/exclui pela linha principal. */}
+            {/* A 1ª mensalidade é o próprio recorrente: o lápis dela edita o recorrente inteiro
+                (categoria, recorrência, projeto…); excluir é pela linha principal. */}
+            {primeira && (
+              <Button variant="ghost" size="icon" title="Editar gasto recorrente" onClick={() => setEditando({ id: m.id, form: formDoGasto(m), mensalidade: false })}>
+                <Pencil className="size-4" />
+              </Button>
+            )}
             {!primeira && (
               <>
                 <Button variant="ghost" size="icon" title="Editar mensalidade" onClick={() => setEditando({ id: m.id, form: formDoGasto(m), mensalidade: true })}>
@@ -417,7 +434,7 @@ export function GastosSection({ projetoId }: { projetoId?: number } = {}) {
       <Dialog open={!!editando} onOpenChange={(open) => !open && setEditando(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar gasto</DialogTitle>
+            <DialogTitle>{editando?.mensalidade ? "Editar mensalidade" : "Editar gasto"}</DialogTitle>
             <DialogDescription>Mudar a data ou a recorrência recalcula a próxima ocorrência.</DialogDescription>
           </DialogHeader>
           {editando && (
