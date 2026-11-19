@@ -2,7 +2,12 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { usuariosApi, type CreateUsuarioRequest } from "@/api/usuarios";
+import { usuariosApi, type CreateUsuarioRequest, type UpdateUsuarioRequest, type UsuarioDaLista } from "@/api/usuarios";
+import { authApi } from "@/api/auth";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { isTelefoneValido, mascararTelefone, soDigitosTelefone } from "@/lib/telefone";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Pencil, Trash2 } from "lucide-react";
 import { rolesApi, type Role } from "@/api/roles";
 import { assinaturaApi } from "@/api/assinatura";
 import { ApiError } from "@/lib/api";
@@ -25,6 +30,22 @@ export function UsuariosPage() {
   const { data: roles = [] } = useQuery({ queryKey: ["roles"], queryFn: () => rolesApi.list() });
   const { data: catalogoPermissoes = [] } = useQuery({ queryKey: ["roles", "permissoes"], queryFn: () => rolesApi.listPermissoesDisponiveis() });
   const { data: assinaturaData } = useQuery({ queryKey: ["assinatura"], queryFn: () => assinaturaApi.status() });
+
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => authApi.me(), staleTime: 30_000 });
+  const podeGerenciar = !!me?.permissoes.includes("usuarios.manage");
+  const meuId = useAuthStore((s) => s.usuario?.id);
+  const [editando, setEditando] = useState<UsuarioDaLista | null>(null);
+
+  const removerMutation = useMutation({
+    mutationFn: (id: string) => usuariosApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      queryClient.invalidateQueries({ queryKey: ["assinatura"] });
+      toast.success("Usuário removido.");
+    },
+    // Último Owner, ou usuário com lançamentos/projetos: a API explica o motivo.
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível remover o usuário."),
+  });
 
   const limiteUsuarios = assinaturaData?.limites.usuarios;
   const limiteAtingido = limiteUsuarios?.maximo != null && limiteUsuarios.atual >= limiteUsuarios.maximo;
@@ -128,6 +149,7 @@ export function UsuariosPage() {
                 <TableHead>E-mail</TableHead>
                 <TableHead>Perfil</TableHead>
                 <TableHead>Status</TableHead>
+                {podeGerenciar && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -147,12 +169,36 @@ export function UsuariosPage() {
                       <Badge variant={u.ativo ? "positive" : "outline"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
                     )}
                   </TableCell>
+                  {podeGerenciar && (
+                    <TableCell>
+                      <div className="flex justify-end">
+                        <Button variant="ghost" size="icon" title="Editar" aria-label={`Editar ${u.nome}`} onClick={() => setEditando(u)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Remover"
+                          aria-label={`Remover ${u.nome}`}
+                          disabled={removerMutation.isPending}
+                          onClick={() => {
+                            const msg = u.id === meuId ? "Remover o seu próprio usuário? Você perde o acesso na hora." : `Remover ${u.nome}? Ele perde o acesso ao Órbita.`;
+                            if (window.confirm(msg)) removerMutation.mutate(u.id);
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </Card>
       </section>
+
+      <EditarUsuarioDialog usuario={editando} roles={roles} onClose={() => setEditando(null)} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium tracking-[0.02em] text-muted-foreground uppercase">Perfis e permissões</h2>
@@ -231,5 +277,92 @@ function RolePermissionsCard({ role, catalogo }: { role: Role; catalogo: { code:
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Editar nome, telefone, perfil e status (ativo/inativo) — `PATCH /usuarios/:id`. E-mail e CPF
+ * não mudam por aqui (mesma regra de "Minha conta"). A API recusa tirar ou desativar o último
+ * Owner ativo e mostra a mensagem.
+ */
+function EditarUsuarioDialog({ usuario, roles, onClose }: { usuario: UsuarioDaLista | null; roles: Role[]; onClose: () => void }) {
+  return (
+    <Dialog open={!!usuario} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar usuário</DialogTitle>
+          <DialogDescription>{usuario?.email}</DialogDescription>
+        </DialogHeader>
+        {usuario && <FormUsuario key={usuario.id} usuario={usuario} roles={roles} onClose={onClose} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FormUsuario({ usuario, roles, onClose }: { usuario: UsuarioDaLista; roles: Role[]; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [nome, setNome] = useState(usuario.nome);
+  const [telefone, setTelefone] = useState(usuario.telefone ? mascararTelefone(usuario.telefone) : "");
+  const [roleId, setRoleId] = useState(usuario.roleId);
+  const [ativo, setAtivo] = useState(usuario.ativo);
+
+  const mutation = useMutation({
+    mutationFn: () => {
+      const data: UpdateUsuarioRequest = { nome: nome.trim(), telefone: soDigitosTelefone(telefone) || null };
+      if (roleId !== usuario.roleId) data.roleId = roleId;
+      if (ativo !== usuario.ativo) data.ativo = ativo;
+      return usuariosApi.update(usuario.id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      toast.success("Usuário atualizado.");
+      onClose();
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Não foi possível atualizar o usuário."),
+  });
+
+  return (
+    <form
+      noValidate
+      className="flex flex-col gap-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (nome.trim().length < 2) return toast.error("O nome deve ter pelo menos 2 caracteres.");
+        if (!isTelefoneValido(telefone)) return toast.error("Telefone inválido — informe DDD + número.");
+        mutation.mutate();
+      }}
+    >
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="usuario-nome">Nome</Label>
+        <Input id="usuario-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="usuario-telefone">Telefone</Label>
+        <Input id="usuario-telefone" inputMode="tel" placeholder="Opcional" value={telefone} onChange={(e) => setTelefone(mascararTelefone(e.target.value))} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="usuario-perfil">Perfil</Label>
+        <Select id="usuario-perfil" value={roleId} onChange={(e) => setRoleId(Number(e.target.value))}>
+          {roles.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.nome}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" className="size-4 accent-primary" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} />
+        Ativo (pode entrar no Órbita)
+      </label>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? "Salvando..." : "Salvar"}
+        </Button>
+      </div>
+    </form>
   );
 }
