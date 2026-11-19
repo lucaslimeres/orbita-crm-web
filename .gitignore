@@ -5,3 +5,8 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# Testes de tela (Playwright)
+dist-e2e/
+test-results/
+playwright-report/
